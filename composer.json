@@ -1,6 +1,6 @@
 {
-    "name": "mindef/demo",
-    "description": "Proyecto MVC demo",
+    "name": "app/celulares",
+    "description": "Proyecto MVC de celulares",
     "type": "project",
     "config": {
         "platform-check": false

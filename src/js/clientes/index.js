@@ -2,6 +2,7 @@ import Swal from "sweetalert2";
 import DataTable from "datatables.net-bs5";
 import { validarFormulario } from "../funciones";
 import { lenguaje } from "../lenguaje";
+import { Dropdown } from "bootstrap";
 
 // Variables principales
 const form = document.getElementById("FormClientes");

@@ -1,7 +1,8 @@
 import DataTable from "datatables.net-bs5";
-import { Toast } from "../funciones";
+import { validarFormulario } from "../funciones";
 import { Modal } from "bootstrap";
 import Swal from "sweetalert2";
+import { lenguaje } from "../lenguaje";
 
 const formMarca = document.getElementById('formMarca');
 const btnBuscar = document.getElementById('btnBuscar');
@@ -14,204 +15,285 @@ const contenedorTabla = document.getElementById('contenedorTabla');
 let tablaMarcas;
 let accion = 'guardar';
 
+// Función para mostrar mensajes con Sweet Alert
+const mostrarMensaje = (tipo, titulo, texto) => {
+    const config = {
+        icon: tipo,
+        title: titulo,
+        text: texto
+    };
+    
+    if (tipo === 'success') {
+        config.timer = 3000;
+        config.showConfirmButton = false;
+        config.toast = true;
+        config.position = 'top-end';
+    } else {
+        config.confirmButtonText = 'OK';
+        config.confirmButtonColor = tipo === 'error' ? '#e74c3c' : '#3498db';
+    }
+    
+    Swal.fire(config);
+};
+
 const buscar = async () => {
+    console.log('🔍 Iniciando búsqueda de marcas...');
+    
     try {
-        // CORREGIDO: Rutas estandarizadas con API
-        const url = '/app03_jmp/marcas/buscarAPI';
-        const config = {
-            method: 'POST'
-        };
+        const respuesta = await fetch('/app03_jmp/marcas/buscarAPI', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/x-www-form-urlencoded',
+            }
+        });
         
-        const respuesta = await fetch(url, config);
+        if (!respuesta.ok) {
+            throw new Error(`HTTP error! status: ${respuesta.status}`);
+        }
+        
         const data = await respuesta.json();
+        console.log('📦 Resultado completo:', data);
+        console.log('📊 Código:', data.codigo);
+        console.log('💬 Mensaje:', data.mensaje);
+        console.log('📄 Data:', data.data);
         
-        if(data.codigo == 1) {
+        if (data.codigo == 1) {
+            console.log('✅ Marcas encontradas:', data.data.length);
+            console.log('🏷️ Primera marca:', data.data[0]);
             mostrarTabla(data.data);
-            Toast.fire({
-                icon: 'success',
-                title: data.mensaje
-            });
+            mostrarMensaje('success', 'Éxito', data.mensaje);
         } else {
-            Toast.fire({
-                icon: 'error',
-                title: data.mensaje
-            });
+            console.log('⚠️ Sin datos:', data.mensaje);
+            mostrarMensaje('info', 'Información', data.mensaje);
+            contenedorTabla.style.display = 'none';
         }
     } catch (error) {
-        console.log(error);
-        Toast.fire({
-            icon: 'error',
-            title: 'Error en el sistema'
-        });
+        console.error('❌ Error completo:', error);
+        mostrarMensaje('error', 'Error', 'Error en el sistema: ' + error.message);
     }
 };
 
 const mostrarTabla = (marcas) => {
     contenedorTabla.style.display = 'block';
     
-    if(tablaMarcas) {
+    if (tablaMarcas) {
         tablaMarcas.destroy();
     }
     
-    const tbody = document.querySelector('#tablaMarcas tbody');
-    tbody.innerHTML = '';
-    
-    marcas.forEach((marca, index) => {
-        // CORREGIDO: Usar 'situacion' como está en la BD original
-        const fila = `
-            <tr>
-                <td>${index + 1}</td>
-                <td>${marca.marca_nombre || ''}</td>
-                <td>${marca.marca_descripcion || ''}</td>
-                <td>${marca.fecha_creacion || ''}</td>
-                <td>
-                    <span class="badge ${marca.situacion == 1 ? 'bg-success' : 'bg-danger'}">
-                        ${marca.situacion == 1 ? 'Activo' : 'Inactivo'}
-                    </span>
-                </td>
-                <td>
-                    <button class="btn btn-warning btn-sm" onclick="modificar(${marca.marca_id}, '${marca.marca_nombre}', '${marca.marca_descripcion}')">
-                        <i class="bi bi-pencil"></i>
-                    </button>
-                    <button class="btn btn-danger btn-sm" onclick="eliminar(${marca.marca_id})">
-                        <i class="bi bi-trash"></i>
-                    </button>
-                </td>
-            </tr>
-        `;
-        tbody.innerHTML += fila;
-    });
-    
+    // TABLA CON NOMBRES EN MAYÚSCULAS (como vienen de Informix)
     tablaMarcas = new DataTable('#tablaMarcas', {
-        language: {
-            url: '//cdn.datatables.net/plug-ins/1.13.7/i18n/es-ES.json'
-        }
+        language: lenguaje,
+        data: marcas,
+        columns: [
+            { title: "No.", data: null, render: (data, type, row, meta) => meta.row + 1 },
+            { title: "Nombre", data: "MARCA_NOMBRE", defaultContent: "" },             // MAYÚSCULAS
+            { title: "Descripción", data: "MARCA_DESCRIPCION", defaultContent: "" },   // MAYÚSCULAS
+            { title: "Fecha Creación", data: "FECHA_CREACION", defaultContent: "" },   // MAYÚSCULAS
+            { 
+                title: "Estado", 
+                data: "SITUACION",                                                     // MAYÚSCULAS
+                render: (data) => {
+                    return `<span class="badge ${data == 1 ? 'bg-success' : 'bg-danger'}">
+                        ${data == 1 ? 'Activo' : 'Inactivo'}
+                    </span>`;
+                }
+            },
+            {
+                title: "Acciones",
+                data: "MARCA_ID",                                                      // MAYÚSCULAS
+                orderable: false,
+                render: (data, type, row) => {
+                    if (!data) return '';
+                    return `
+                        <button class="btn btn-warning btn-sm modificar" 
+                                data-marca='${JSON.stringify(row)}'>
+                            <i class="bi bi-pencil"></i> Modificar
+                        </button>
+                        <button class="btn btn-danger btn-sm eliminar ms-1" 
+                                data-id="${data}">
+                            <i class="bi bi-trash"></i> Eliminar
+                        </button>
+                    `;
+                }
+            }
+        ]
     });
+    
+    // Event listeners para los botones de la tabla
+    tablaMarcas.on("click", ".modificar", llenarFormulario);
+    tablaMarcas.on("click", ".eliminar", eliminarMarca);
 };
 
 const guardar = async () => {
-    // Validación simple solo para el nombre (que es obligatorio)
-    const nombre = document.getElementById('marca_nombre').value.trim();
-    
-    if(nombre === '') {
-        Toast.fire({
-            icon: 'warning',
-            title: 'El nombre de la marca es obligatorio'
-        });
+    if (!validarFormulario(formMarca, ["marca_id"])) {
+        mostrarMensaje('warning', 'Validación', 'Complete los campos obligatorios');
         return;
     }
     
+    btnGuardar.disabled = true;
+    
     try {
-        const body = new FormData(formMarca);
+        const datos = new URLSearchParams();
         
-        // CORREGIDO: Rutas estandarizadas con API
+        // Agregar campos manualmente
+        if (accion === 'modificar') {
+            datos.append('marca_id', document.getElementById('marca_id').value);
+        }
+        datos.append('marca_nombre', document.getElementById('marca_nombre').value.trim());
+        datos.append('marca_descripcion', document.getElementById('marca_descripcion').value.trim());
+        
+        // DEBUG: Ver qué datos se están enviando
+        console.log('Datos a enviar:');
+        for (let [key, value] of datos.entries()) {
+            console.log(`${key}: ${value}`);
+        }
+        
         const url = accion === 'guardar' ? 
             '/app03_jmp/marcas/guardarAPI' : 
             '/app03_jmp/marcas/modificarAPI';
         
-        const config = {
+        const respuesta = await fetch(url, {
             method: 'POST',
-            body
-        };
+            headers: {
+                'Content-Type': 'application/x-www-form-urlencoded',
+            },
+            body: datos
+        });
         
-        const respuesta = await fetch(url, config);
         const data = await respuesta.json();
+        console.log('Respuesta del servidor:', data);
         
-        if(data.codigo == 1) {
-            Toast.fire({
-                icon: 'success',
-                title: data.mensaje
-            });
-            
+        if (data.codigo == 1) {
+            mostrarMensaje('success', 'Éxito', data.mensaje);
             modalMarca.hide();
             limpiarModal();
             buscar();
         } else {
-            Toast.fire({
-                icon: 'error',
-                title: data.mensaje
+            mostrarMensaje('warning', 'Atención', data.mensaje);
+        }
+    } catch (error) {
+        console.error('Error:', error);
+        mostrarMensaje('error', 'Error', 'Error en el sistema: ' + error.message);
+    }
+    
+    btnGuardar.disabled = false;
+};
+
+const llenarFormulario = (e) => {
+    const marca = JSON.parse(e.target.dataset.marca);
+    console.log('🏷️ Marca recibida:', marca);
+    
+    limpiarModal();
+    accion = 'modificar';
+    tituloModal.textContent = 'Modificar Marca';
+    
+    // MAPEAR CAMPOS DE MAYÚSCULAS A MINÚSCULAS
+    document.getElementById('marca_id').value = marca.MARCA_ID || '';
+    document.getElementById('marca_nombre').value = marca.MARCA_NOMBRE || '';
+    document.getElementById('marca_descripcion').value = marca.MARCA_DESCRIPCION || '';
+    
+    console.log('📝 Formulario llenado con:');
+    console.log('ID:', document.getElementById('marca_id').value);
+    console.log('Nombre:', document.getElementById('marca_nombre').value);
+    console.log('Descripción:', document.getElementById('marca_descripcion').value);
+    
+    modalMarca.show();
+};
+
+const eliminarMarca = async (e) => {
+    const id = e.target.dataset.id;
+    
+    if (!id) {
+        mostrarMensaje('error', 'Error', 'ID de marca no válido');
+        return;
+    }
+    
+    const confirmacion = await Swal.fire({
+        title: '¿Eliminar marca?',
+        text: 'Esta acción no se puede deshacer',
+        icon: 'warning',
+        showCancelButton: true,
+        confirmButtonColor: '#e74c3c',
+        cancelButtonColor: '#6c757d',
+        confirmButtonText: 'Sí, eliminar',
+        cancelButtonText: 'Cancelar'
+    });
+    
+    if (!confirmacion.isConfirmed) return;
+    
+    try {
+        const datos = new URLSearchParams();
+        datos.append('marca_id', id);
+        
+        const respuesta = await fetch('/app03_jmp/marcas/eliminarAPI', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/x-www-form-urlencoded',
+            },
+            body: datos
+        });
+        
+        const data = await respuesta.json();
+        
+        if (data.codigo == 1) {
+            Swal.fire({
+                icon: 'success',
+                title: '¡Eliminada!',
+                text: data.mensaje,
+                timer: 3000,
+                showConfirmButton: false
+            });
+            buscar();
+        } else {
+            Swal.fire({
+                icon: 'warning',
+                title: 'No se puede eliminar',
+                text: data.mensaje,
+                confirmButtonText: 'Entendido',
+                confirmButtonColor: '#f39c12'
             });
         }
     } catch (error) {
-        console.log(error);
-        Toast.fire({
+        console.error('Error:', error);
+        Swal.fire({
             icon: 'error',
-            title: 'Error en el sistema'
+            title: 'Error de sistema',
+            text: 'Ocurrió un problema técnico. Intente nuevamente.',
+            confirmButtonText: 'OK',
+            confirmButtonColor: '#e74c3c'
         });
     }
 };
 
 const limpiarModal = () => {
     formMarca.reset();
-    // Limpiar validaciones manualmente
-    const elements = formMarca.querySelectorAll('.is-invalid');
-    elements.forEach(element => {
-        element.classList.remove('is-invalid');
+    
+    // Limpiar validaciones
+    formMarca.querySelectorAll('.form-control').forEach(input => {
+        input.classList.remove('is-valid', 'is-invalid');
     });
     
     document.getElementById('marca_id').value = '';
     accion = 'guardar';
     tituloModal.textContent = 'Nueva Marca';
-};
-
-window.modificar = (id, nombre, descripcion) => {
-    limpiarModal();
-    accion = 'modificar';
-    tituloModal.textContent = 'Modificar Marca';
-    document.getElementById('marca_id').value = id;
-    document.getElementById('marca_nombre').value = nombre;
-    document.getElementById('marca_descripcion').value = descripcion;
-    modalMarca.show();
-};
-
-window.eliminar = async (id) => {
-    const confirmacion = await Swal.fire({
-        title: '¿Estás seguro?',
-        text: 'Esta acción eliminará la marca',
-        icon: 'warning',
-        showCancelButton: true,
-        confirmButtonColor: '#d33',
-        cancelButtonColor: '#3085d6',
-        confirmButtonText: 'Sí, eliminar',
-        cancelButtonText: 'Cancelar'
-    });
     
-    if(confirmacion.isConfirmed) {
-        try {
-            const body = new FormData();
-            body.append('marca_id', id);
-            
-            // CORREGIDO: Ruta estandarizada con API
-            const url = '/app03_jmp/marcas/eliminarAPI';
-            const config = {
-                method: 'POST',
-                body
-            };
-            
-            const respuesta = await fetch(url, config);
-            const data = await respuesta.json();
-            
-            if(data.codigo == 1) {
-                Toast.fire({
-                    icon: 'success',
-                    title: data.mensaje
-                });
-                buscar();
-            } else {
-                Toast.fire({
-                    icon: 'error',
-                    title: data.mensaje
-                });
-            }
-        } catch (error) {
-            console.log(error);
-        }
-    }
+    console.log('🧹 Modal limpiado - ID:', document.getElementById('marca_id').value);
 };
 
-btnBuscar.addEventListener('click', buscar);
-btnModalMarca.addEventListener('click', () => {
-    limpiarModal();
-    modalMarca.show();
+// Event listeners
+document.addEventListener('DOMContentLoaded', () => {
+    console.log('🚀 DOM cargado, iniciando aplicación de marcas...');
+    
+    // Buscar marcas al cargar
+    buscar();
+    
+    btnBuscar.addEventListener('click', buscar);
+    btnModalMarca.addEventListener('click', () => {
+        limpiarModal();
+        modalMarca.show();
+    });
+    btnGuardar.addEventListener('click', guardar);
 });
-btnGuardar.addEventListener('click', guardar);
+
+// Exponer función globalmente si es necesario
+window.buscarMarcas = buscar;

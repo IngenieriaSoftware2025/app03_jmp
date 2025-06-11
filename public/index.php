@@ -16,13 +16,13 @@ $router->get('/', [AppController::class, 'index']);
 // Rutas de clientes CORREGIDAS
 $router->get('/clientes', [ClienteController::class, 'renderizarPagina']);
 $router->post('/clientes/guardarAPI', [ClienteController::class, 'guardarAPI']);
-$router->post('/clientes/buscarAPI', [ClienteController::class, 'buscarAPI']); // CAMBIADO A POST
+$router->post('/clientes/buscarAPI', [ClienteController::class, 'buscarAPI']);
 $router->post('/clientes/modificarAPI', [ClienteController::class, 'modificarAPI']);
 $router->post('/clientes/eliminarAPI', [ClienteController::class, 'eliminarAPI']);
 $router->post('/clientes/buscarPorTelefonoAPI', [ClienteController::class, 'buscarPorTelefonoAPI']);
 
-// Rutas de Marcas estandarizadas
-$router->get('/marcas', [MarcaController::class,'renderizarPagina']);
+//rutas de marcas
+$router->get('/marcas', [MarcaController::class, 'renderizarPagina']);
 $router->post('/marcas/buscarAPI', [MarcaController::class,'buscarAPI']);
 $router->post('/marcas/guardarAPI', [MarcaController::class,'guardarAPI']);
 $router->post('/marcas/modificarAPI', [MarcaController::class,'modificarAPI']);

@@ -58,10 +58,12 @@
             <div class="modal-body">
                 <form id="formMarca" novalidate>
                     <input type="hidden" id="marca_id" name="marca_id">
+                    <input type="hidden" id="situacion" name="situacion" value="1">
                     
                     <div class="mb-3">
-                        <label for="marca_nombre" class="form-label">Nombre de la Marca</label>
-                        <input type="text" class="form-control" id="marca_nombre" name="marca_nombre" required maxlength="50">
+                        <label for="marca_nombre" class="form-label">Nombre de la Marca *</label>
+                        <input type="text" class="form-control" id="marca_nombre" name="marca_nombre" 
+                               required maxlength="50" placeholder="Ingrese el nombre de la marca">
                         <div class="invalid-feedback">
                             El nombre de la marca es obligatorio
                         </div>
@@ -69,17 +71,20 @@
                     
                     <div class="mb-3">
                         <label for="marca_descripcion" class="form-label">Descripción</label>
-                        <textarea class="form-control" id="marca_descripcion" name="marca_descripcion" rows="3" maxlength="200"></textarea>
-                        <div class="form-text">Opcional - Describe las características de la marca</div>
+                        <textarea class="form-control" id="marca_descripcion" name="marca_descripcion" 
+                                  rows="3" maxlength="200" placeholder="Descripción opcional de la marca"></textarea>
+                        <div class="form-text">Opcional - Describe las características de la marca (máx. 200 caracteres)</div>
                     </div>
                 </form>
             </div>
             <div class="modal-footer">
                 <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
-                <button type="button" class="btn btn-success" id="btnGuardar">Guardar</button>
+                <button type="button" class="btn btn-success" id="btnGuardar">
+                    <i class="bi bi-save me-1"></i>Guardar
+                </button>
             </div>
         </div>
     </div>
 </div>
 
-<script src="<?= asset('./build/js/marcas/index.js') ?>"></script>
+<script src="<?= asset('build/js/marcas/index.js') ?>"></script>

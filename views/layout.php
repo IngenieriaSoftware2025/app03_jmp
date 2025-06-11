@@ -18,7 +18,7 @@
             <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarToggler" aria-controls="navbarToggler" aria-expanded="false" aria-label="Toggle navigation">
                 <span class="navbar-toggler-icon"></span>
             </button>
-            <a class="navbar-brand" href="/ejemplo/">
+            <a class="navbar-brand" href="/app03_jmp">
                 <img src="<?= asset('./images/cit.png') ?>" width="35px'" alt="cit">
                 Aplicaciones
             </a>

@@ -54,7 +54,6 @@ class MarcaController
                 exit;
             }
             
-            // Verificar que no exista la marca - SIN usar fetchFirst
             $sql = "SELECT COUNT(*) as total FROM marcas WHERE marca_nombre = '" . $_POST['marca_nombre'] . "'";
             $resultado = Marcas::SQL($sql);
             $fila = $resultado->fetch();
@@ -67,6 +66,8 @@ class MarcaController
                 ]);
                 exit;
             }
+            
+            $_POST['situacion'] = 1;
             
             $marca = new Marcas($_POST);
             $resultado = $marca->crear();

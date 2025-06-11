@@ -16,7 +16,8 @@ let accion = 'guardar';
 
 const buscar = async () => {
     try {
-        const url = '/app03_jmp/marcas/buscar';
+        // CORREGIDO: Rutas estandarizadas con API
+        const url = '/app03_jmp/marcas/buscarAPI';
         const config = {
             method: 'POST'
         };
@@ -56,6 +57,7 @@ const mostrarTabla = (marcas) => {
     tbody.innerHTML = '';
     
     marcas.forEach((marca, index) => {
+        // CORREGIDO: Usar 'situacion' como está en la BD original
         const fila = `
             <tr>
                 <td>${index + 1}</td>
@@ -102,9 +104,10 @@ const guardar = async () => {
     try {
         const body = new FormData(formMarca);
         
+        // CORREGIDO: Rutas estandarizadas con API
         const url = accion === 'guardar' ? 
-            '/app03_jmp/marcas/guardar' : 
-            '/app03_jmp/marcas/modificar';
+            '/app03_jmp/marcas/guardarAPI' : 
+            '/app03_jmp/marcas/modificarAPI';
         
         const config = {
             method: 'POST',
@@ -178,7 +181,8 @@ window.eliminar = async (id) => {
             const body = new FormData();
             body.append('marca_id', id);
             
-            const url = '/app03_jmp/marcas/eliminar';
+            // CORREGIDO: Ruta estandarizada con API
+            const url = '/app03_jmp/marcas/eliminarAPI';
             const config = {
                 method: 'POST',
                 body

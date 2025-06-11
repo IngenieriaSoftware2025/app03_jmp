@@ -1,61 +1,62 @@
 CREATE DATABASE morataya_celulares;
 
+-- Tabla clientes (nombres originales del código)
 CREATE TABLE clientes (
     cliente_id SERIAL PRIMARY KEY NOT NULL,
-    nombres VARCHAR(100),
-    apellidos VARCHAR(100),
-    nit VARCHAR(10),
-    telefono VARCHAR(10),
-    correo VARCHAR(100),
-    situacion SMALLINT DEFAULT  1
-)
+    cliente_nombres VARCHAR(100),
+    cliente_apellidos VARCHAR(100),
+    cliente_nit VARCHAR(15),           
+    cliente_telefono VARCHAR(8),       
+    cliente_correo VARCHAR(100),
+    cliente_situacion SMALLINT DEFAULT 1
+);
 
--- Tabla de marcas de celulares
+-- Tabla de marcas
 CREATE TABLE marcas (
     marca_id SERIAL PRIMARY KEY,
     marca_nombre VARCHAR(50) NOT NULL UNIQUE,
     marca_descripcion LVARCHAR(200),
     fecha_creacion DATE DEFAULT TODAY,
-    situacion SMALLINT DEFAULT 1
+    situacion SMALLINT DEFAULT 1     
 );
 
--- Tabla de productos (celulares, repuestos, servicios - TODO EN UNA)
+-- Tabla de productos (nombres originales)
 CREATE TABLE productos (
     producto_id SERIAL PRIMARY KEY,
     marca_id INT,
     nombre_producto VARCHAR(150) NOT NULL,
-    tipo_producto VARCHAR(20) NOT NULL, -- 'celular', 'repuesto', 'servicio'
+    tipo_producto VARCHAR(20) NOT NULL CHECK (tipo_producto IN ('celular', 'repuesto', 'servicio')),
     modelo VARCHAR(100),
-    precio_compra DECIMAL(10,2) DEFAULT 0,
-    precio_venta DECIMAL(10,2) NOT NULL,
-    stock_actual INT DEFAULT 0,
-    stock_minimo INT DEFAULT 0,
+    precio_compra DECIMAL(10,2) DEFAULT 0 CHECK (precio_compra >= 0),
+    precio_venta DECIMAL(10,2) NOT NULL CHECK (precio_venta > 0),
+    stock_actual INT DEFAULT 0 CHECK (stock_actual >= 0),
+    stock_minimo INT DEFAULT 0 CHECK (stock_minimo >= 0),
     descripcion LVARCHAR(300),
     fecha_creacion DATE DEFAULT TODAY,
-    situacion SMALLINT DEFAULT 1,
+    situacion SMALLINT DEFAULT 1,   
     FOREIGN KEY (marca_id) REFERENCES marcas(marca_id)
 );
 
--- Tabla de ventas (incluye ventas y reparaciones)
+-- CORREGIDO: Tabla de ventas con sintaxis Informix correcta
 CREATE TABLE ventas (
     venta_id SERIAL PRIMARY KEY,
     cliente_id INT NOT NULL,
-    fecha_venta DATETIME YEAR TO SECOND DEFAULT CURRENT,
-    total DECIMAL(10,2) NOT NULL,
-    tipo_venta VARCHAR(20) NOT NULL, -- 'venta' o 'reparacion'
-    descripcion LVARCHAR(300), -- Para reparaciones: motivo, estado, etc.
+    fecha_venta DATETIME YEAR TO SECOND DEFAULT CURRENT YEAR TO SECOND,
+    total DECIMAL(10,2) NOT NULL CHECK (total >= 0),
+    tipo_venta VARCHAR(20) NOT NULL CHECK (tipo_venta IN ('venta', 'reparacion')),
+    descripcion LVARCHAR(300),
     situacion SMALLINT DEFAULT 1,
     FOREIGN KEY (cliente_id) REFERENCES clientes(cliente_id)
 );
 
--- Tabla de detalle de ventas (productos/servicios vendidos)
+-- Tabla de detalle de ventas
 CREATE TABLE detalle_ventas (
     detalle_id SERIAL PRIMARY KEY,
     venta_id INT NOT NULL,
     producto_id INT NOT NULL,
-    cantidad INT NOT NULL,
-    precio_unitario DECIMAL(10,2) NOT NULL,
-    subtotal DECIMAL(10,2) NOT NULL,
+    cantidad INT NOT NULL CHECK (cantidad > 0),
+    precio_unitario DECIMAL(10,2) NOT NULL CHECK (precio_unitario > 0),
+    subtotal DECIMAL(10,2) NOT NULL CHECK (subtotal >= 0),
     FOREIGN KEY (venta_id) REFERENCES ventas(venta_id),
     FOREIGN KEY (producto_id) REFERENCES productos(producto_id)
 );

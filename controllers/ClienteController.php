@@ -5,6 +5,7 @@ namespace Controllers;
 use MVC\Router;
 use Model\ActiveRecord;
 use Model\Clientes;
+use PDO;
 use Exception;
 
 class ClienteController extends ActiveRecord
@@ -14,7 +15,6 @@ class ClienteController extends ActiveRecord
         $router->render('clientes/index', []);
     }
 
-    // Función helper para respuestas JSON
     private static function responder($codigo, $mensaje, $data = null)
     {
         header('Content-Type: application/json; charset=utf-8');
@@ -27,7 +27,6 @@ class ClienteController extends ActiveRecord
         exit;
     }
 
-    // Función helper para validar datos
     private static function validarCliente($datos)
     {
         if (empty($datos['cliente_nombres'])) {
@@ -41,23 +40,60 @@ class ClienteController extends ActiveRecord
         if (empty($datos['cliente_telefono']) || strlen($datos['cliente_telefono']) != 8) {
             return 'El teléfono debe tener 8 dígitos';
         }
+
+        if (!preg_match('/^[2-7]/', $datos['cliente_telefono'])) {
+            return 'El teléfono debe comenzar con un dígito válido (2-7)';
+        }
         
         if (!empty($datos['cliente_correo']) && !filter_var($datos['cliente_correo'], FILTER_VALIDATE_EMAIL)) {
             return 'El correo electrónico no es válido';
         }
+
+        if (!empty($datos['cliente_nit'])) {
+            $cliente = new Clientes();
+            if (!$cliente->validarNIT($datos['cliente_nit'])) {
+                return 'El NIT ingresado no es válido';
+            }
+        }
         
-        return null; // Sin errores
+        return null;
     }
 
-    // Función helper para limpiar datos
+    private static function verificarDuplicados($datos, $excluirId = null)
+    {
+        if (!empty($datos['cliente_telefono'])) {
+            $clienteExistente = Clientes::buscarPorTelefono($datos['cliente_telefono']);
+            if ($clienteExistente && (!$excluirId || $clienteExistente['cliente_id'] != $excluirId)) {
+                return 'Ya existe un cliente con ese número de teléfono';
+            }
+        }
+
+        if (!empty($datos['cliente_correo'])) {
+            $clienteExistente = Clientes::buscarPorCorreo($datos['cliente_correo']);
+            if ($clienteExistente && (!$excluirId || $clienteExistente['cliente_id'] != $excluirId)) {
+                return 'Ya existe un cliente con ese correo electrónico';
+            }
+        }
+
+        if (!empty($datos['cliente_nit'])) {
+            $clienteExistente = Clientes::buscarPorNIT($datos['cliente_nit']);
+            if ($clienteExistente && (!$excluirId || $clienteExistente['cliente_id'] != $excluirId)) {
+                return 'Ya existe un cliente con ese NIT';
+            }
+        }
+
+        return null;
+    }
+
     private static function limpiarDatos($datos)
     {
         return [
             'cliente_nombres' => ucwords(strtolower(trim(htmlspecialchars($datos['cliente_nombres'])))),
             'cliente_apellidos' => ucwords(strtolower(trim(htmlspecialchars($datos['cliente_apellidos'])))),
-            'cliente_nit' => htmlspecialchars($datos['cliente_nit'] ?? ''),
+            'cliente_nit' => trim(htmlspecialchars($datos['cliente_nit'] ?? '')),
             'cliente_telefono' => filter_var($datos['cliente_telefono'], FILTER_SANITIZE_NUMBER_INT),
             'cliente_correo' => filter_var($datos['cliente_correo'] ?? '', FILTER_SANITIZE_EMAIL),
+            'cliente_direccion' => trim(htmlspecialchars($datos['cliente_direccion'] ?? '')),
             'cliente_situacion' => 1
         ];
     }
@@ -66,8 +102,12 @@ class ClienteController extends ActiveRecord
     {
         getHeadersApi();
 
-        // Validar datos
         $error = self::validarCliente($_POST);
+        if ($error) {
+            self::responder(0, $error);
+        }
+
+        $error = self::verificarDuplicados($_POST);
         if ($error) {
             self::responder(0, $error);
         }
@@ -75,11 +115,16 @@ class ClienteController extends ActiveRecord
         try {
             $datosLimpios = self::limpiarDatos($_POST);
             $cliente = new Clientes($datosLimpios);
-            $cliente->crear();
             
+            $errores = $cliente->validar();
+            if (!empty($errores)) {
+                self::responder(0, implode(', ', $errores));
+            }
+
+            $cliente->crear();
             self::responder(1, 'Cliente guardado exitosamente');
         } catch (Exception $e) {
-            self::responder(0, 'Error al guardar el cliente', $e->getMessage());
+            self::responder(0, 'Error al guardar el cliente: ' . $e->getMessage());
         }
     }
 
@@ -89,15 +134,20 @@ class ClienteController extends ActiveRecord
         
         try {
             $consulta = "SELECT * FROM clientes WHERE cliente_situacion = 1 ORDER BY cliente_nombres";
-            $clientes = self::fetchArray($consulta);
+            $resultado = self::SQL($consulta);
+            
+            $clientes = [];
+            while ($fila = $resultado->fetch(PDO::FETCH_ASSOC)) {
+                $clientes[] = $fila;
+            }
 
-            if (is_array($clientes) && count($clientes) > 0) {
+            if (count($clientes) > 0) {
                 self::responder(1, 'Clientes encontrados', $clientes);
             } else {
                 self::responder(0, 'No hay clientes disponibles', []);
             }
         } catch (Exception $e) {
-            self::responder(0, 'Error de conexión', $e->getMessage());
+            self::responder(0, 'Error de conexión: ' . $e->getMessage());
         }
     }
 
@@ -105,13 +155,16 @@ class ClienteController extends ActiveRecord
     {
         getHeadersApi();
 
-        // Validar ID
         if (empty($_POST['cliente_id']) || !is_numeric($_POST['cliente_id'])) {
             self::responder(0, 'ID de cliente requerido y debe ser numérico');
         }
 
-        // Validar datos
         $error = self::validarCliente($_POST);
+        if ($error) {
+            self::responder(0, $error);
+        }
+
+        $error = self::verificarDuplicados($_POST, $_POST['cliente_id']);
         if ($error) {
             self::responder(0, $error);
         }
@@ -126,11 +179,16 @@ class ClienteController extends ActiveRecord
 
             $datosLimpios = self::limpiarDatos($_POST);
             $cliente->sincronizar($datosLimpios);
-            $cliente->actualizar();
+            
+            $errores = $cliente->validar();
+            if (!empty($errores)) {
+                self::responder(0, implode(', ', $errores));
+            }
 
+            $cliente->actualizar();
             self::responder(1, 'Cliente actualizado exitosamente');
         } catch (Exception $e) {
-            self::responder(0, 'Error al actualizar el cliente', $e->getMessage());
+            self::responder(0, 'Error al actualizar el cliente: ' . $e->getMessage());
         }
     }
 
@@ -138,7 +196,6 @@ class ClienteController extends ActiveRecord
     {
         getHeadersApi();
 
-        // Validar ID
         if (empty($_POST['cliente_id']) || !is_numeric($_POST['cliente_id'])) {
             self::responder(0, 'ID de cliente requerido y debe ser numérico');
         }
@@ -146,19 +203,47 @@ class ClienteController extends ActiveRecord
         try {
             $id = filter_var($_POST['cliente_id'], FILTER_SANITIZE_NUMBER_INT);
             
-            // Verificar si existe
             $cliente = Clientes::find($id);
             if (!$cliente) {
                 self::responder(0, 'Cliente no encontrado');
             }
 
-            // Eliminación lógica
-            $sql = "UPDATE clientes SET cliente_situacion = 0 WHERE cliente_id = 1";
-            self::SQL($sql, [$id]);
+            // Verificar si el cliente tiene ventas o reparaciones asociadas
+            $verificarVentas = "SELECT COUNT(*) as total FROM ventas WHERE cliente_id = $id";
+            $resultadoVentas = self::SQL($verificarVentas);
+            $ventas = $resultadoVentas->fetch();
+
+            if ($ventas['total'] > 0) {
+                self::responder(0, 'No se puede eliminar el cliente porque tiene ventas o reparaciones asociadas');
+            }
+
+            $sql = "UPDATE clientes SET cliente_situacion = 0 WHERE cliente_id = $id";
+            self::SQL($sql);
 
             self::responder(1, 'El cliente ha sido eliminado correctamente');
         } catch (Exception $e) {
-            self::responder(0, 'Error al eliminar el cliente', $e->getMessage());
+            self::responder(0, 'Error al eliminar el cliente: ' . $e->getMessage());
+        }
+    }
+
+    public static function buscarPorTelefonoAPI()
+    {
+        getHeadersApi();
+
+        if (empty($_POST['telefono'])) {
+            self::responder(0, 'Número de teléfono requerido');
+        }
+
+        try {
+            $cliente = Clientes::buscarPorTelefono($_POST['telefono']);
+            
+            if ($cliente) {
+                self::responder(1, 'Cliente encontrado', $cliente);
+            } else {
+                self::responder(0, 'Cliente no encontrado');
+            }
+        } catch (Exception $e) {
+            self::responder(0, 'Error en la búsqueda: ' . $e->getMessage());
         }
     }
 }

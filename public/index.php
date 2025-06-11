@@ -13,20 +13,19 @@ $router->setBaseURL('/' . $_ENV['APP_NAME']);
 // Ruta principal
 $router->get('/', [AppController::class, 'index']);
 
-// Rutas de clientes
+// Rutas de clientes completas
 $router->get('/clientes', [ClienteController::class, 'renderizarPagina']);
 $router->post('/clientes/guardarAPI', [ClienteController::class, 'guardarAPI']);
 $router->get('/clientes/buscarAPI', [ClienteController::class, 'buscarAPI']);
 $router->post('/clientes/modificarAPI', [ClienteController::class, 'modificarAPI']);
 $router->post('/clientes/eliminarAPI', [ClienteController::class, 'eliminarAPI']);
+$router->post('/clientes/buscarPorTelefonoAPI', [ClienteController::class, 'buscarPorTelefonoAPI']);
 
-//Rutas de Marcas
+// Rutas de Marcas estandarizadas
 $router->get('/marcas', [MarcaController::class,'renderizarPagina']);
-$router->post('/marcas/buscar', [MarcaController::class,'buscarAPI']);
-$router->post('/marcas/guardar', [MarcaController::class,'guardarAPI']);
-$router->post('/marcas/modificar', [MarcaController::class,'modificarAPI']);
-$router->post('/marcas/eliminar', [MarcaController::class,'eliminarAPI']);
-
-
+$router->post('/marcas/buscarAPI', [MarcaController::class,'buscarAPI']);
+$router->post('/marcas/guardarAPI', [MarcaController::class,'guardarAPI']);
+$router->post('/marcas/modificarAPI', [MarcaController::class,'modificarAPI']);
+$router->post('/marcas/eliminarAPI', [MarcaController::class,'eliminarAPI']);
 
 $router->comprobarRutas();

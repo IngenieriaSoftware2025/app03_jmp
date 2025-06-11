@@ -1,33 +1,31 @@
 <?php
 
-// Crea nombre de espacio Model
 namespace Model;
 
-// Importa la clase ActiveRecord del nombre de espacio Model
 use Model\ActiveRecord;
 
-// Crea la clase de instancia Clientes y hereda las funciones de ActiveRecord
 class Clientes extends ActiveRecord
 {
-    // Crea las propiedades de la clase
     public static $tabla = 'clientes';
     public static $idTabla = 'cliente_id';
     public static $columnasDB = [
+        'cliente_id',
         'cliente_nombres',
         'cliente_apellidos',
         'cliente_nit',
         'cliente_telefono',
         'cliente_correo',
+        'cliente_direccion',
         'cliente_situacion'
     ];
 
-    // Crea las variables para almacenar los datos
     public $cliente_id;
     public $cliente_nombres;
     public $cliente_apellidos;
     public $cliente_nit;
     public $cliente_telefono;
     public $cliente_correo;
+    public $cliente_direccion;
     public $cliente_situacion;
 
     public function __construct($cliente = [])
@@ -38,10 +36,10 @@ class Clientes extends ActiveRecord
         $this->cliente_nit = $cliente['cliente_nit'] ?? '';
         $this->cliente_telefono = $cliente['cliente_telefono'] ?? '';
         $this->cliente_correo = $cliente['cliente_correo'] ?? '';
+        $this->cliente_direccion = $cliente['cliente_direccion'] ?? '';
         $this->cliente_situacion = $cliente['cliente_situacion'] ?? 1;
     }
 
-    // Método para validar los datos del cliente
     public function validar()
     {
         $errores = [];
@@ -64,45 +62,70 @@ class Clientes extends ActiveRecord
             $errores[] = 'El formato del correo electrónico no es válido';
         }
 
+        if (!empty($this->cliente_nit) && !$this->validarNIT($this->cliente_nit)) {
+            $errores[] = 'El NIT ingresado no es válido';
+        }
+
         return $errores;
     }
 
-    // Método para obtener el nombre completo del cliente
+    public function validarNIT($nit)
+    {
+        if (preg_match('/^(\d+)-?([\dkK])$/', $nit, $matches)) {
+            $numero = $matches[1];
+            $digitoVerificador = strtolower($matches[2]) === 'k' ? 10 : intval($matches[2]);
+            
+            $suma = 0;
+            $factor = strlen($numero) + 1;
+            
+            for ($i = 0; $i < strlen($numero); $i++) {
+                $suma += intval($numero[$i]) * $factor;
+                $factor--;
+            }
+            
+            $digitoCalculado = (11 - ($suma % 11)) % 11;
+            return $digitoCalculado === $digitoVerificador;
+        }
+        return false;
+    }
+
     public function getNombreCompleto()
     {
         return trim($this->cliente_nombres . ' ' . $this->cliente_apellidos);
     }
 
-    // Método para verificar si el cliente está activo
     public function estaActivo()
     {
         return $this->cliente_situacion == 1;
     }
 
-    // Método estático para buscar clientes activos
     public static function clientesActivos()
     {
         $query = "SELECT * FROM " . static::$tabla . " WHERE cliente_situacion = 1 ORDER BY cliente_nombres";
         return static::fetchArray($query);
     }
 
-    // Método estático para buscar cliente por teléfono
     public static function buscarPorTelefono($telefono)
     {
-        $query = "SELECT * FROM " . static::$tabla . " WHERE cliente_telefono = ? AND cliente_situacion = 1";
-        $resultado = static::fetchArray($query, [$telefono]);
-        return !empty($resultado) ? $resultado[0] : null;
+        $sql = "SELECT * FROM " . static::$tabla . " WHERE cliente_telefono = '$telefono' AND cliente_situacion = 1";
+        $resultado = static::SQL($sql);
+        return $resultado->fetch();
     }
 
-    // Método estático para buscar cliente por correo
     public static function buscarPorCorreo($correo)
     {
-        $query = "SELECT * FROM " . static::$tabla . " WHERE cliente_correo = ? AND cliente_situacion = 1";
-        $resultado = static::fetchArray($query, [$correo]);
-        return !empty($resultado) ? $resultado[0] : null;
+        $sql = "SELECT * FROM " . static::$tabla . " WHERE cliente_correo = '$correo' AND cliente_situacion = 1";
+        $resultado = static::SQL($sql);
+        return $resultado->fetch();
     }
 
-    // En tu modelo Clientes
+    public static function buscarPorNIT($nit)
+    {
+        $sql = "SELECT * FROM " . static::$tabla . " WHERE cliente_nit = '$nit' AND cliente_situacion = 1";
+        $resultado = static::SQL($sql);
+        return $resultado->fetch();
+    }
+
     public static function all()
     {
         $consulta = "SELECT * FROM " . static::$tabla . " WHERE cliente_situacion = 1 ORDER BY cliente_nombres";

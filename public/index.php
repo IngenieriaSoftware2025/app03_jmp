@@ -13,10 +13,10 @@ $router->setBaseURL('/' . $_ENV['APP_NAME']);
 // Ruta principal
 $router->get('/', [AppController::class, 'index']);
 
-// Rutas de clientes completas
+// Rutas de clientes CORREGIDAS
 $router->get('/clientes', [ClienteController::class, 'renderizarPagina']);
 $router->post('/clientes/guardarAPI', [ClienteController::class, 'guardarAPI']);
-$router->get('/clientes/buscarAPI', [ClienteController::class, 'buscarAPI']);
+$router->post('/clientes/buscarAPI', [ClienteController::class, 'buscarAPI']); // CAMBIADO A POST
 $router->post('/clientes/modificarAPI', [ClienteController::class, 'modificarAPI']);
 $router->post('/clientes/eliminarAPI', [ClienteController::class, 'eliminarAPI']);
 $router->post('/clientes/buscarPorTelefonoAPI', [ClienteController::class, 'buscarPorTelefonoAPI']);

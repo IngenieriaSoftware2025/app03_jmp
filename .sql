@@ -3,12 +3,13 @@ CREATE DATABASE morataya_celulares;
 -- Tabla clientes (nombres originales del código)
 CREATE TABLE clientes (
     cliente_id SERIAL PRIMARY KEY NOT NULL,
-    cliente_nombres VARCHAR(100),
-    cliente_apellidos VARCHAR(100),
-    cliente_nit VARCHAR(15),           
-    cliente_telefono VARCHAR(8),       
+    cliente_nombres VARCHAR(100) NOT NULL,
+    cliente_apellidos VARCHAR(100) NOT NULL,
+    cliente_nit VARCHAR(15),                   
+    cliente_telefono VARCHAR(8) NOT NULL,      
     cliente_correo VARCHAR(100),
-    cliente_situacion SMALLINT DEFAULT 1
+    cliente_direccion VARCHAR(200),            
+    cliente_situacion SMALLINT DEFAULT 1       
 );
 
 -- Tabla de marcas

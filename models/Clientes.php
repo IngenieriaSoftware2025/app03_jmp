@@ -3,6 +3,7 @@
 namespace Model;
 
 use Model\ActiveRecord;
+use PDO;
 
 class Clientes extends ActiveRecord
 {
@@ -105,30 +106,42 @@ class Clientes extends ActiveRecord
         return static::fetchArray($query);
     }
 
-    public static function buscarPorTelefono($telefono)
-    {
-        $sql = "SELECT * FROM " . static::$tabla . " WHERE cliente_telefono = '$telefono' AND cliente_situacion = 1";
-        $resultado = static::SQL($sql);
-        return $resultado->fetch();
-    }
+   public static function buscarPorTelefono($telefono)
+{
+    $sql = "SELECT * FROM " . static::$tabla . " WHERE cliente_telefono = '$telefono' AND cliente_situacion = 1";
+    $resultado = static::SQL($sql);
+    $data = $resultado->fetch(PDO::FETCH_ASSOC);
+    
+    // DEBUG
+    error_log("Buscando por teléfono: $telefono");
+    error_log("Resultado: " . print_r($data, true));
+    
+    return $data;
+}
 
-    public static function buscarPorCorreo($correo)
-    {
-        $sql = "SELECT * FROM " . static::$tabla . " WHERE cliente_correo = '$correo' AND cliente_situacion = 1";
-        $resultado = static::SQL($sql);
-        return $resultado->fetch();
-    }
+public static function buscarPorCorreo($correo)
+{
+    $sql = "SELECT * FROM " . static::$tabla . " WHERE cliente_correo = '$correo' AND cliente_situacion = 1";
+    $resultado = static::SQL($sql);
+    $data = $resultado->fetch(PDO::FETCH_ASSOC);
+    
+    // DEBUG
+    error_log("Buscando por correo: $correo");
+    error_log("Resultado: " . print_r($data, true));
+    
+    return $data;
+}
 
-    public static function buscarPorNIT($nit)
-    {
-        $sql = "SELECT * FROM " . static::$tabla . " WHERE cliente_nit = '$nit' AND cliente_situacion = 1";
-        $resultado = static::SQL($sql);
-        return $resultado->fetch();
-    }
-
-    public static function all()
-    {
-        $consulta = "SELECT * FROM " . static::$tabla . " WHERE cliente_situacion = 1 ORDER BY cliente_nombres";
-        return static::fetchArray($consulta);
-    }
+public static function buscarPorNIT($nit)
+{
+    $sql = "SELECT * FROM " . static::$tabla . " WHERE cliente_nit = '$nit' AND cliente_situacion = 1";
+    $resultado = static::SQL($sql);
+    $data = $resultado->fetch(PDO::FETCH_ASSOC);
+    
+    // DEBUG
+    error_log("Buscando por NIT: $nit");
+    error_log("Resultado: " . print_r($data, true));
+    
+    return $data;
+}
 }

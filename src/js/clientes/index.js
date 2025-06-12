@@ -10,6 +10,107 @@ const btnGuardar = document.getElementById("BtnGuardar");
 const btnModificar = document.getElementById("BtnModificar");
 const btnLimpiar = document.getElementById("BtnLimpiar");
 
+
+let clientesData = [];
+
+// TABLA CORREGIDA - usando campos en minúsculas como vienen del servidor
+const tabla = new DataTable("#TableClientes", {
+    language: lenguaje,
+    data: [],
+    pageLength: 25,
+    columns: [
+        { title: "No.", data: null, render: (data, type, row, meta) => meta.row + 1, width: "5%" },
+        { title: "Nombres", data: "cliente_nombres", defaultContent: "", width: "15%" },
+        { title: "Apellidos", data: "cliente_apellidos", defaultContent: "", width: "15%" },
+        { 
+            title: "NIT", 
+            data: "cliente_nit", 
+            defaultContent: "", 
+            width: "12%",
+            render: (data) => {
+                return data && data.trim() !== '' ? data : '<em class="text-muted">Sin NIT</em>';
+            }
+        },
+        { 
+            title: "Teléfono", 
+            data: "cliente_telefono", 
+            defaultContent: "", 
+            width: "10%",
+            render: (data) => {
+                return data ? `<code>${data}</code>` : '';
+            }
+        },
+        { 
+            title: "Correo", 
+            data: "cliente_correo", 
+            defaultContent: "", 
+            width: "18%",
+            render: (data) => {
+                if (!data || data.trim() === '') return '<em class="text-muted">Sin correo</em>';
+                return data.length > 25 ? 
+                    `<span title="${data}">${data.substring(0, 25)}...</span>` : 
+                    data;
+            }
+        },
+        { 
+            title: "Dirección", 
+            data: "cliente_direccion", 
+            defaultContent: "", 
+            width: "15%",
+            render: (data) => {
+                if (!data || data.trim() === '') return '<em class="text-muted">Sin dirección</em>';
+                return data.length > 30 ? 
+                    `<span title="${data}">${data.substring(0, 30)}...</span>` : 
+                    data;
+            }
+        },
+        {
+            title: "Acciones",
+            data: "cliente_id",
+            orderable: false,
+            width: "10%",
+            render: (data, type, row, meta) => {
+                if (!data) return '';
+                
+                // USAR ÍNDICE como en productos (sin problemas JSON)
+                return `
+                    <button class="btn btn-warning btn-sm modificar" 
+                            data-index="${meta.row}" 
+                            title="Modificar">
+                        Modificar
+                    </button>
+                    <button class="btn btn-danger btn-sm eliminar ms-1" 
+                            data-id="${data}" 
+                            title="Eliminar">
+                        Eliminar
+                    </button>
+                `;
+            }
+        }
+    ]
+});
+
+// Función para mostrar mensajes
+const mostrarMensaje = (tipo, titulo, texto, timer = null) => {
+    const config = {
+        icon: tipo,
+        title: titulo,
+        text: texto
+    };
+    
+    if (tipo === 'success') {
+        config.timer = timer || 3000;
+        config.showConfirmButton = false;
+        config.toast = true;
+        config.position = 'top-end';
+    } else {
+        config.confirmButtonText = 'OK';
+        config.confirmButtonColor = tipo === 'error' ? '#e74c3c' : '#3498db';
+    }
+    
+    Swal.fire(config);
+};
+
 // Validación simple de NIT
 function validarNit() {
     const nitInput = document.getElementById('cliente_nit');
@@ -44,7 +145,7 @@ const validarNitInput = () => {
         nitInput.classList.remove('is-valid');
         nitInput.classList.add('is-invalid');
     }
-}
+};
 
 // Validación simple de teléfono
 const validarTelefono = () => {
@@ -68,63 +169,7 @@ const validarTelefono = () => {
     }
 };
 
-// SOLUCIÓN: Cambiar todos los nombres de campos a MAYÚSCULAS
-const tabla = new DataTable("#TableClientes", {
-    language: lenguaje,
-    data: [],
-    columns: [
-        { title: "No.", data: null, render: (data, type, row, meta) => meta.row + 1 },
-        { title: "Nombres", data: "CLIENTE_NOMBRES", defaultContent: "" },        // CAMBIADO
-        { title: "Apellidos", data: "CLIENTE_APELLIDOS", defaultContent: "" },    // CAMBIADO
-        { title: "NIT", data: "CLIENTE_NIT", defaultContent: "" },               // CAMBIADO
-        { title: "Teléfono", data: "CLIENTE_TELEFONO", defaultContent: "" },     // CAMBIADO
-        { title: "Correo", data: "CLIENTE_CORREO", defaultContent: "" },         // CAMBIADO
-        {
-            title: "Acciones",
-            data: "CLIENTE_ID",                                                   // CAMBIADO
-            orderable: false,
-            render: (data, type, row) => {
-                if (!data) return '';
-                return `
-                    <button class="btn btn-warning btn-sm modificar" 
-                            data-cliente='${JSON.stringify(row)}'>
-                        Modificar
-                    </button>
-                    <button class="btn btn-danger btn-sm eliminar ms-1" 
-                            data-id="${data}">
-                        Eliminar
-                    </button>
-                `;
-            }
-        }
-    ]
-});
-
-// REEMPLAZAR la función mostrarMensaje por esta versión única
-const mostrarMensaje = (tipo, titulo, texto, timer = null) => {
-    // Configuración base
-    const config = {
-        icon: tipo,
-        title: titulo,
-        text: texto
-    };
-    
-    // Si es success, usar timer automático
-    if (tipo === 'success') {
-        config.timer = timer || 3000;
-        config.showConfirmButton = false;
-        config.toast = true;
-        config.position = 'top-end';
-    } else {
-        // Para error, warning, info - mostrar botón
-        config.confirmButtonText = 'OK';
-        config.confirmButtonColor = tipo === 'error' ? '#e74c3c' : '#3498db';
-    }
-    
-    Swal.fire(config);
-};
-
-// Buscar clientes CORREGIDO con POST y mejor debugging
+// Buscar clientes
 const buscarClientes = async () => {
     console.log('🔍 Iniciando búsqueda de clientes...');
     
@@ -138,7 +183,6 @@ const buscarClientes = async () => {
         
         console.log('📡 Respuesta del servidor:', respuesta);
         console.log('📊 Status:', respuesta.status);
-        console.log('📋 Headers:', respuesta.headers);
         
         if (!respuesta.ok) {
             throw new Error(`HTTP error! status: ${respuesta.status}`);
@@ -152,19 +196,31 @@ const buscarClientes = async () => {
         console.log('📄 Data:', resultado.data);
         
         if (resultado.codigo === 1) {
-            console.log('✅ Datos encontrados:', resultado.data.length, 'clientes');
-            console.log('👤 Primer cliente:', resultado.data[0]);
-            
-            tabla.clear().rows.add(resultado.data || []).draw();
-            mostrarMensaje('success', 'Éxito', `Se encontraron ${resultado.data.length} clientes`);
+            if (resultado.data && resultado.data.length > 0) {
+                console.log('✅ Datos encontrados:', resultado.data.length, 'clientes');
+                console.log('👤 Primer cliente:', resultado.data[0]);
+                
+                // ALMACENAR GLOBALMENTE
+                clientesData = resultado.data;
+                
+                tabla.clear().rows.add(resultado.data).draw();
+                mostrarMensaje('success', 'Éxito', `Se encontraron ${resultado.data.length} clientes`);
+            } else {
+                console.log('📭 Sin clientes:', resultado.mensaje);
+                clientesData = [];
+                tabla.clear().draw();
+                mostrarMensaje('info', 'Sin clientes', 'No hay clientes registrados. Agregue el primer cliente.');
+            }
         } else {
             console.log('⚠️ Sin datos:', resultado.mensaje);
+            clientesData = [];
             tabla.clear().draw();
             mostrarMensaje('info', 'Información', resultado.mensaje || 'No hay clientes disponibles');
         }
     } catch (error) {
         console.error('❌ Error completo:', error);
         console.error('📍 Stack trace:', error.stack);
+        clientesData = [];
         mostrarMensaje('error', 'Error', `Problema de conexión: ${error.message}`);
         tabla.clear().draw();
     }
@@ -203,7 +259,7 @@ const guardarCliente = async (e) => {
     btnGuardar.disabled = false;
 };
 
-// Modificar cliente - VERSIÓN FINAL con mejor manejo de errores
+// Modificar cliente
 const modificarCliente = async (e) => {
     e.preventDefault();
     
@@ -240,11 +296,9 @@ const modificarCliente = async (e) => {
             body: datos
         });
         
-        // Ahora siempre será 200, así que verificamos el contenido
         const resultado = await respuesta.json();
         
         if (resultado.codigo === 1) {
-            // ÉXITO - Sweet Alert verde
             Swal.fire({
                 icon: 'success',
                 title: '¡Éxito!',
@@ -255,7 +309,6 @@ const modificarCliente = async (e) => {
             limpiarFormulario();
             buscarClientes();
         } else {
-            // ERROR DE NEGOCIO - Sweet Alert naranja/warning
             Swal.fire({
                 icon: 'warning',
                 title: 'Atención',
@@ -265,7 +318,6 @@ const modificarCliente = async (e) => {
             });
         }
     } catch (error) {
-        // ERROR TÉCNICO - Sweet Alert rojo
         console.error('Error técnico:', error);
         Swal.fire({
             icon: 'error',
@@ -279,7 +331,7 @@ const modificarCliente = async (e) => {
     btnModificar.disabled = false;
 };
 
-// Eliminar cliente FINAL - Solo Sweet Alert directo
+// Eliminar cliente
 const eliminarCliente = async (e) => {
     const id = e.target.dataset.id;
     
@@ -320,7 +372,6 @@ const eliminarCliente = async (e) => {
         const resultado = await respuesta.json();
         
         if (resultado.codigo === 1) {
-            // ÉXITO - UN SOLO Sweet Alert
             Swal.fire({
                 icon: 'success',
                 title: '¡Eliminado!',
@@ -328,9 +379,8 @@ const eliminarCliente = async (e) => {
                 timer: 3000,
                 showConfirmButton: false
             });
-            buscarClientes(); // Actualizar tabla
+            buscarClientes();
         } else {
-            // ERROR DE NEGOCIO
             Swal.fire({
                 icon: 'warning',
                 title: 'No se puede eliminar',
@@ -351,48 +401,63 @@ const eliminarCliente = async (e) => {
     }
 };
 
-// Llenar formulario COMPLETO - con todos los campos necesarios
-const llenarFormulario = (e) => {
-    const cliente = JSON.parse(e.target.dataset.cliente);
-    
-    console.log('Cliente recibido:', cliente); // DEBUG
-    
-    // Mapeo COMPLETO de campos de la BD (MAYÚSCULAS) a los inputs del formulario (minúsculas)
-    const mapeoCliente = {
-        'cliente_id': cliente.CLIENTE_ID || '',              // ¡IMPORTANTE!
-        'cliente_nombres': cliente.CLIENTE_NOMBRES || '',
-        'cliente_apellidos': cliente.CLIENTE_APELLIDOS || '',
-        'cliente_nit': cliente.CLIENTE_NIT || '',
-        'cliente_telefono': cliente.CLIENTE_TELEFONO || '',
-        'cliente_correo': cliente.CLIENTE_CORREO || '',
-        'cliente_direccion': cliente.CLIENTE_DIRECCION || '',
-        'cliente_situacion': cliente.CLIENTE_SITUACION || '1'
-    };
-    
-    console.log('Mapeo cliente:', mapeoCliente); // DEBUG
-    
-    // Llenar todos los campos del formulario
-    Object.keys(mapeoCliente).forEach(key => {
-        const input = document.getElementById(key);
-        if (input) {
-            input.value = mapeoCliente[key];
-            console.log(`Campo ${key}: ${mapeoCliente[key]}`); // DEBUG
-        } else {
-            console.warn(`Input no encontrado: ${key}`); // DEBUG
-        }
-    });
 
-    // Cambiar botones
-    btnGuardar.classList.add("d-none");
-    btnModificar.classList.remove("d-none");
-    
-    // Scroll hacia arriba
-    window.scrollTo({ top: 0, behavior: 'smooth' });
-    
-    console.log('Cliente ID final:', document.getElementById('cliente_id').value); // DEBUG
+const llenarFormulario = (e) => {
+    try {
+        // OBTENER ÍNDICE DEL BOTÓN
+        const index = parseInt(e.target.dataset.index);
+        
+        // OBTENER CLIENTE DE LA VARIABLE GLOBAL
+        const cliente = clientesData[index];
+        
+        if (!cliente) {
+            mostrarMensaje('error', 'Error', 'No se encontró el cliente');
+            return;
+        }
+        
+        console.log('👤 Cliente recibido:', cliente);
+        
+        // Mapeo CORRECTO de campos del servidor (minúsculas) a los inputs del formulario (minúsculas)
+        const mapeoCliente = {
+            'cliente_id': cliente.cliente_id || '',
+            'cliente_nombres': cliente.cliente_nombres || '',
+            'cliente_apellidos': cliente.cliente_apellidos || '',
+            'cliente_nit': cliente.cliente_nit || '',
+            'cliente_telefono': cliente.cliente_telefono || '',
+            'cliente_correo': cliente.cliente_correo || '',
+            'cliente_direccion': cliente.cliente_direccion || '',
+            'cliente_situacion': cliente.cliente_situacion || '1'
+        };
+        
+        console.log('🗺️ Mapeo cliente:', mapeoCliente);
+        
+        // Llenar todos los campos del formulario
+        Object.keys(mapeoCliente).forEach(key => {
+            const input = document.getElementById(key);
+            if (input) {
+                input.value = mapeoCliente[key];
+                console.log(`Campo ${key}: ${mapeoCliente[key]}`);
+            } else {
+                console.warn(`Input no encontrado: ${key}`);
+            }
+        });
+
+        // Cambiar botones
+        btnGuardar.classList.add("d-none");
+        btnModificar.classList.remove("d-none");
+        
+        // Scroll hacia arriba
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+        
+        console.log('✅ Cliente ID final:', document.getElementById('cliente_id').value);
+        
+    } catch (error) {
+        console.error('❌ Error al llenar formulario:', error);
+        mostrarMensaje('error', 'Error', 'No se pudo cargar los datos del cliente');
+    }
 };
 
-// Limpiar formulario MEJORADO
+// Limpiar formulario
 const limpiarFormulario = () => {
     form.reset();
     
@@ -409,25 +474,130 @@ const limpiarFormulario = () => {
         input.classList.remove('is-valid', 'is-invalid');
     });
     
-    console.log('Formulario limpiado - Cliente ID:', document.getElementById('cliente_id').value); // DEBUG
+    console.log('🧹 Formulario limpiado - Cliente ID:', document.getElementById('cliente_id').value);
 };
+
+
+// Búsqueda avanzada
+const buscarFiltrado = async () => {
+    const busqueda = document.getElementById('buscarCliente').value.trim();
+    
+    if (!busqueda) {
+        buscarClientes(); // Si no hay filtro, mostrar todos
+        return;
+    }
+    
+    try {
+        const datos = new URLSearchParams();
+        datos.append('busqueda', busqueda);
+        
+        const respuesta = await fetch('/app03_jmp/clientes/buscarFiltradoAPI', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/x-www-form-urlencoded',
+            },
+            body: datos
+        });
+        
+        const resultado = await respuesta.json();
+        
+        if (resultado.codigo === 1) {
+            clientesData = resultado.data || [];
+            tabla.clear().rows.add(clientesData).draw();
+            
+            if (clientesData.length > 0) {
+                mostrarMensaje('success', 'Búsqueda', `${clientesData.length} clientes encontrados`);
+            } else {
+                mostrarMensaje('info', 'Sin resultados', 'No se encontraron clientes con ese criterio');
+            }
+        } else {
+            mostrarMensaje('warning', 'Búsqueda', resultado.mensaje);
+        }
+    } catch (error) {
+        console.error('Error en búsqueda:', error);
+        mostrarMensaje('error', 'Error', 'Error en la búsqueda');
+    }
+};
+
+// Mostrar estadísticas
+const mostrarEstadisticas = async () => {
+    try {
+        const respuesta = await fetch('/app03_jmp/clientes/estadisticasAPI', {
+            method: 'POST'
+        });
+        
+        const resultado = await respuesta.json();
+        
+        if (resultado.codigo === 1) {
+            const stats = resultado.data;
+            
+            Swal.fire({
+                title: '📊 Estadísticas de Clientes',
+                html: `
+                    <div class="text-start">
+                        <p><strong>👥 Total clientes activos:</strong> ${stats.total_activos}</p>
+                        <p><strong>🆔 Clientes con NIT:</strong> ${stats.con_nit}</p>
+                        <p><strong>📧 Clientes con correo:</strong> ${stats.con_correo}</p>
+                        <hr>
+                        <small class="text-muted">Datos actualizados en tiempo real</small>
+                    </div>
+                `,
+                icon: 'info',
+                confirmButtonText: 'Cerrar',
+                confirmButtonColor: '#007bff'
+            });
+        } else {
+            mostrarMensaje('error', 'Error', 'No se pudieron obtener las estadísticas');
+        }
+    } catch (error) {
+        console.error('Error en estadísticas:', error);
+        mostrarMensaje('error', 'Error', 'Error al obtener estadísticas');
+    }
+};
+
 // Event listeners
 document.addEventListener('DOMContentLoaded', () => {
-    console.log('🚀 DOM cargado, iniciando aplicación...');
+    console.log('🚀 DOM cargado, iniciando aplicación de clientes...');
     
     // Buscar clientes inmediatamente al cargar
     buscarClientes();
     
+    // Formulario
     form.addEventListener("submit", guardarCliente);
     btnLimpiar.addEventListener("click", limpiarFormulario);
     btnModificar.addEventListener("click", modificarCliente);
     
+    // BOTONES PRINCIPALES
+    const btnActualizar = document.getElementById('btnActualizar');
+    const btnEstadisticas = document.getElementById('btnEstadisticas');
+    
+    if (btnActualizar) {
+        btnActualizar.addEventListener('click', buscarClientes);
+    }
+    
+    if (btnEstadisticas) {
+        btnEstadisticas.addEventListener('click', mostrarEstadisticas);
+    }
+    
+    // Validaciones
     document.getElementById("cliente_nit").addEventListener('change', validarNitInput);
     document.getElementById("cliente_telefono").addEventListener("input", validarTelefono);
     
+    // Búsqueda en tiempo real
+    const inputBuscar = document.getElementById('buscarCliente');
+    if (inputBuscar) {
+        let timeoutId;
+        inputBuscar.addEventListener('input', () => {
+            clearTimeout(timeoutId);
+            timeoutId = setTimeout(buscarFiltrado, 500); // Buscar después de 500ms
+        });
+    }
+    
+    // Eventos de la tabla
     tabla.on("click", ".modificar", llenarFormulario);
     tabla.on("click", ".eliminar", eliminarCliente);
 });
 
-// Exponer función globalmente para el botón HTML
+// Exponer funciones globalmente (por si acaso)
 window.buscarClientes = buscarClientes;
+window.mostrarEstadisticas = mostrarEstadisticas;

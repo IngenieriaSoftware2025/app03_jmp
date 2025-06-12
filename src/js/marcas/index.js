@@ -4,6 +4,7 @@ import { Modal } from "bootstrap";
 import Swal from "sweetalert2";
 import { lenguaje } from "../lenguaje";
 
+// Variables principales
 const formMarca = document.getElementById('formMarca');
 const btnBuscar = document.getElementById('btnBuscar');
 const btnModalMarca = document.getElementById('btnModalMarca');
@@ -12,10 +13,12 @@ const modalMarca = new Modal(document.getElementById('modalMarca'));
 const tituloModal = document.getElementById('tituloModal');
 const contenedorTabla = document.getElementById('contenedorTabla');
 
+// Almacenar datos globalmente
+let marcasData = [];
 let tablaMarcas;
 let accion = 'guardar';
 
-// Función para mostrar mensajes con Sweet Alert
+// Función para mostrar mensajes
 const mostrarMensaje = (tipo, titulo, texto) => {
     const config = {
         icon: tipo,
@@ -55,16 +58,27 @@ const buscar = async () => {
         console.log('📦 Resultado completo:', data);
         
         if (data.codigo == 1) {
-            console.log('✅ Marcas encontradas:', data.data.length);
-            mostrarTabla(data.data);
-            mostrarMensaje('success', 'Éxito', data.mensaje);
+            if (data.data && data.data.length > 0) {
+                console.log('✅ Marcas encontradas:', data.data.length);
+                
+                marcasData = data.data;
+                mostrarTabla(data.data);
+                mostrarMensaje('success', 'Éxito', `${data.data.length} marcas encontradas`);
+            } else {
+                console.log('📭 Sin marcas:', data.mensaje);
+                marcasData = [];
+                contenedorTabla.style.display = 'none';
+                mostrarMensaje('info', 'Sin marcas', 'No hay marcas registradas. Agregue la primera marca.');
+            }
         } else {
             console.log('⚠️ Sin datos:', data.mensaje);
+            marcasData = [];
             mostrarMensaje('info', 'Información', data.mensaje);
             contenedorTabla.style.display = 'none';
         }
     } catch (error) {
         console.error('❌ Error completo:', error);
+        marcasData = [];
         mostrarMensaje('error', 'Error', 'Error en el sistema: ' + error.message);
     }
 };
@@ -76,18 +90,39 @@ const mostrarTabla = (marcas) => {
         tablaMarcas.destroy();
     }
     
-    // TABLA CON NOMBRES EN MINÚSCULAS (como vienen del servidor)
     tablaMarcas = new DataTable('#tablaMarcas', {
         language: lenguaje,
         data: marcas,
+        pageLength: 25,
         columns: [
-            { title: "No.", data: null, render: (data, type, row, meta) => meta.row + 1 },
-            { title: "Nombre", data: "marca_nombre", defaultContent: "" },             // minúsculas ✅
-            { title: "Descripción", data: "marca_descripcion", defaultContent: "" },   // minúsculas ✅
-            { title: "Fecha Creación", data: "fecha_creacion", defaultContent: "" },   // minúsculas ✅
+            { title: "No.", data: null, render: (data, type, row, meta) => meta.row + 1, width: "8%" },
+            { title: "Nombre", data: "marca_nombre", defaultContent: "", width: "25%" },
+            { 
+                title: "Descripción", 
+                data: "marca_descripcion", 
+                defaultContent: "", 
+                width: "35%",
+                render: (data) => {
+                    if (!data || data.trim() === '') return '<em class="text-muted">Sin descripción</em>';
+                    return data.length > 60 ? 
+                        `<span title="${data}">${data.substring(0, 60)}...</span>` : 
+                        data;
+                }
+            },
+            { 
+                title: "Fecha Creación", 
+                data: "fecha_creacion", 
+                defaultContent: "", 
+                width: "12%",
+                render: (data) => {
+                    if (!data) return '<em class="text-muted">N/A</em>';
+                    return data;
+                }
+            },
             { 
                 title: "Estado", 
-                data: "situacion",                                                     // minúsculas ✅
+                data: "situacion",
+                width: "10%",
                 render: (data) => {
                     return `<span class="badge ${data == 1 ? 'bg-success' : 'bg-danger'}">
                         ${data == 1 ? 'Activo' : 'Inactivo'}
@@ -96,18 +131,22 @@ const mostrarTabla = (marcas) => {
             },
             {
                 title: "Acciones",
-                data: "marca_id",                                                      // minúsculas ✅
+                data: "marca_id",
                 orderable: false,
-                render: (data, type, row) => {
+                width: "10%",
+                render: (data, type, row, meta) => {
                     if (!data) return '';
+                    
                     return `
                         <button class="btn btn-warning btn-sm modificar" 
-                                data-marca='${JSON.stringify(row)}'>
-                            <i class="bi bi-pencil"></i> Modificar
+                                data-index="${meta.row}" 
+                                title="Modificar">
+                            <i class="bi bi-pencil"></i>
                         </button>
                         <button class="btn btn-danger btn-sm eliminar ms-1" 
-                                data-id="${data}">
-                            <i class="bi bi-trash"></i> Eliminar
+                                data-id="${data}" 
+                                title="Eliminar">
+                            <i class="bi bi-trash"></i>
                         </button>
                     `;
                 }
@@ -115,12 +154,14 @@ const mostrarTabla = (marcas) => {
         ]
     });
     
-    // Event listeners para los botones de la tabla
     tablaMarcas.on("click", ".modificar", llenarFormulario);
     tablaMarcas.on("click", ".eliminar", eliminarMarca);
 };
 
 const guardar = async () => {
+    console.log('💾 Iniciando guardado...');
+    console.log('📋 Acción actual:', accion);
+    
     if (!validarFormulario(formMarca, ["marca_id"])) {
         mostrarMensaje('warning', 'Validación', 'Complete los campos obligatorios');
         return;
@@ -131,9 +172,10 @@ const guardar = async () => {
     try {
         const datos = new URLSearchParams();
         
-        // Agregar campos manualmente
         if (accion === 'modificar') {
-            datos.append('marca_id', document.getElementById('marca_id').value);
+            const marcaId = document.getElementById('marca_id').value;
+            console.log('🔄 Modificando marca ID:', marcaId);
+            datos.append('marca_id', marcaId);
         }
         datos.append('marca_nombre', document.getElementById('marca_nombre').value.trim());
         datos.append('marca_descripcion', document.getElementById('marca_descripcion').value.trim());
@@ -141,6 +183,8 @@ const guardar = async () => {
         const url = accion === 'guardar' ? 
             '/app03_jmp/marcas/guardarAPI' : 
             '/app03_jmp/marcas/modificarAPI';
+            
+        console.log('🌐 URL a llamar:', url);
         
         const respuesta = await fetch(url, {
             method: 'POST',
@@ -151,6 +195,7 @@ const guardar = async () => {
         });
         
         const data = await respuesta.json();
+        console.log('📥 Respuesta del servidor:', data);
         
         if (data.codigo == 1) {
             mostrarMensaje('success', 'Éxito', data.mensaje);
@@ -161,7 +206,7 @@ const guardar = async () => {
             mostrarMensaje('warning', 'Atención', data.mensaje);
         }
     } catch (error) {
-        console.error('Error:', error);
+        console.error('❌ Error en guardar:', error);
         mostrarMensaje('error', 'Error', 'Error en el sistema: ' + error.message);
     }
     
@@ -169,21 +214,43 @@ const guardar = async () => {
 };
 
 const llenarFormulario = (e) => {
-    const marca = JSON.parse(e.target.dataset.marca);
-    console.log('🏷️ Marca recibida:', marca);
-    
-    limpiarModal();
-    accion = 'modificar';
-    tituloModal.textContent = 'Modificar Marca';
-    
-    // CAMPOS VIENEN EN MINÚSCULAS del servidor ✅
-    document.getElementById('marca_id').value = marca.marca_id || '';
-    document.getElementById('marca_nombre').value = marca.marca_nombre || '';
-    document.getElementById('marca_descripcion').value = marca.marca_descripcion || '';
-    
-    console.log('📝 Formulario llenado correctamente');
-    
-    modalMarca.show();
+    try {
+        e.preventDefault();
+        e.stopPropagation();
+        
+        const boton = e.target.closest('.modificar');
+        const index = parseInt(boton.dataset.index);
+        
+        const marca = marcasData[index];
+        
+        if (!marca) {
+            mostrarMensaje('error', 'Error', 'No se encontró la marca');
+            return;
+        }
+        
+        console.log('🏷️ Marca recibida:', marca);
+        
+        formMarca.reset();
+        formMarca.querySelectorAll('.form-control').forEach(input => {
+            input.classList.remove('is-valid', 'is-invalid');
+        });
+        
+        accion = 'modificar';
+        tituloModal.textContent = 'Modificar Marca';
+        
+        document.getElementById('marca_id').value = marca.marca_id || '';
+        document.getElementById('marca_nombre').value = marca.marca_nombre || '';
+        document.getElementById('marca_descripcion').value = marca.marca_descripcion || '';
+        
+        console.log('📝 Formulario llenado - ID:', marca.marca_id);
+        console.log('📝 Acción actual:', accion);
+        
+        modalMarca.show();
+        
+    } catch (error) {
+        console.error('❌ Error al llenar formulario:', error);
+        mostrarMensaje('error', 'Error', 'No se pudo cargar los datos de la marca');
+    }
 };
 
 const eliminarMarca = async (e) => {
@@ -254,7 +321,6 @@ const eliminarMarca = async (e) => {
 const limpiarModal = () => {
     formMarca.reset();
     
-    // Limpiar validaciones
     formMarca.querySelectorAll('.form-control').forEach(input => {
         input.classList.remove('is-valid', 'is-invalid');
     });
@@ -262,22 +328,72 @@ const limpiarModal = () => {
     document.getElementById('marca_id').value = '';
     accion = 'guardar';
     tituloModal.textContent = 'Nueva Marca';
+    
+    console.log('🧹 Modal limpiado - Acción:', accion);
+};
+
+const mostrarEstadisticas = async () => {
+    try {
+        const respuesta = await fetch('/app03_jmp/marcas/estadisticasAPI', {
+            method: 'POST'
+        });
+        
+        const resultado = await respuesta.json();
+        
+        if (resultado.codigo === 1) {
+            const stats = resultado.data;
+            
+            Swal.fire({
+                title: '📊 Estadísticas de Marcas',
+                html: `
+                    <div class="text-start">
+                        <p><strong>🏷️ Total marcas activas:</strong> ${stats.total_activas}</p>
+                        <p><strong>📦 Marcas con productos:</strong> ${stats.con_productos}</p>
+                        <p><strong>📭 Marcas sin productos:</strong> ${stats.sin_productos}</p>
+                        <hr>
+                        <small class="text-muted">Datos actualizados en tiempo real</small>
+                    </div>
+                `,
+                icon: 'info',
+                confirmButtonText: 'Cerrar',
+                confirmButtonColor: '#007bff'
+            });
+        } else {
+            mostrarMensaje('error', 'Error', 'No se pudieron obtener las estadísticas');
+        }
+    } catch (error) {
+        console.error('Error en estadísticas:', error);
+        mostrarMensaje('error', 'Error', 'Error al obtener estadísticas');
+    }
 };
 
 // Event listeners
 document.addEventListener('DOMContentLoaded', () => {
     console.log('🚀 DOM cargado, iniciando aplicación de marcas...');
     
-    // Buscar marcas al cargar
     buscar();
     
-    btnBuscar.addEventListener('click', buscar);
-    btnModalMarca.addEventListener('click', () => {
-        limpiarModal();
-        modalMarca.show();
-    });
-    btnGuardar.addEventListener('click', guardar);
+    if (btnBuscar) {
+        btnBuscar.addEventListener('click', buscar);
+    }
+    
+    if (btnModalMarca) {
+        btnModalMarca.addEventListener('click', () => {
+            limpiarModal();
+            modalMarca.show();
+        });
+    }
+    
+    if (btnGuardar) {
+        btnGuardar.addEventListener('click', guardar);
+    }
+    
+    const btnEstadisticas = document.getElementById('btnEstadisticas');
+    if (btnEstadisticas) {
+        btnEstadisticas.addEventListener('click', mostrarEstadisticas);
+    }
 });
 
-// Exponer función globalmente si es necesario
+// Exponer funciones globalmente
 window.buscarMarcas = buscar;
+window.mostrarEstadisticas = mostrarEstadisticas;

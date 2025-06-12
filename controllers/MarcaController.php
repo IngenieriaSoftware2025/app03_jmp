@@ -15,11 +15,10 @@ class MarcaController extends ActiveRecord
         $router->render('marcas/index', []);
     }
 
-    // Método responder unificado como en ClienteController
     private static function responder($codigo, $mensaje, $data = null)
     {
         header('Content-Type: application/json; charset=utf-8');
-        http_response_code(200); // SIEMPRE 200 para que JavaScript procese bien
+        http_response_code(200);
         
         $respuesta = ['codigo' => $codigo, 'mensaje' => $mensaje];
         if ($data !== null) $respuesta['data'] = $data;
@@ -28,7 +27,8 @@ class MarcaController extends ActiveRecord
         exit;
     }
 
-    // Validar datos de marca
+
+    
     private static function validarMarca($datos)
     {
         if (empty($datos['marca_nombre']) || strlen(trim($datos['marca_nombre'])) < 2) {
@@ -46,7 +46,6 @@ class MarcaController extends ActiveRecord
         return null;
     }
 
-    // Verificar duplicados
     private static function verificarDuplicados($datos, $excluirId = null)
     {
         if (!empty($datos['marca_nombre'])) {
@@ -54,7 +53,7 @@ class MarcaController extends ActiveRecord
             $resultado = self::SQL($sql);
             $marcaExistente = $resultado->fetch(PDO::FETCH_ASSOC);
             
-            if ($marcaExistente && (!$excluirId || $marcaExistente['MARCA_ID'] != $excluirId)) {
+            if ($marcaExistente && (!$excluirId || $marcaExistente['marca_id'] != $excluirId)) {
                 return 'Ya existe una marca con ese nombre';
             }
         }
@@ -62,7 +61,6 @@ class MarcaController extends ActiveRecord
         return null;
     }
 
-    // Limpiar datos
     private static function limpiarDatos($datos)
     {
         return [
@@ -72,22 +70,160 @@ class MarcaController extends ActiveRecord
         ];
     }
 
+
+    // ========================================
+
+    public static function marcasActivas()
+    {
+        $query = "SELECT * FROM marcas WHERE situacion = 1 ORDER BY marca_nombre";
+        return self::fetchArray($query);
+    }
+
+    public static function buscarConFiltros($filtros)
+    {
+        $sql = "SELECT * FROM marcas WHERE situacion = 1";
+        
+        $condiciones = [];
+        
+        if (!empty($filtros['busqueda'])) {
+            $busqueda = $filtros['busqueda'];
+            $condiciones[] = "(marca_nombre LIKE '%$busqueda%' OR marca_descripcion LIKE '%$busqueda%')";
+        }
+        
+        if (!empty($condiciones)) {
+            $sql .= " AND " . implode(" AND ", $condiciones);
+        }
+        
+        $sql .= " ORDER BY marca_nombre";
+        
+        return self::fetchArray($sql);
+    }
+
+    public static function estadisticasMarcas()
+    {
+        $stats = [];
+        
+        // Total marcas activas
+        $sql = "SELECT COUNT(*) as total FROM marcas WHERE situacion = 1";
+        $resultado = self::SQL($sql);
+        $data = $resultado->fetch(PDO::FETCH_ASSOC);
+        $stats['total_activas'] = $data['total'] ?? $data['TOTAL'] ?? 0;
+        
+        // Marcas con productos
+        $sql = "SELECT COUNT(DISTINCT m.marca_id) as total 
+                FROM marcas m 
+                INNER JOIN productos p ON m.marca_id = p.marca_id 
+                WHERE m.situacion = 1 AND p.situacion = 1";
+        $resultado = self::SQL($sql);
+        $data = $resultado->fetch(PDO::FETCH_ASSOC);
+        $stats['con_productos'] = $data['total'] ?? $data['TOTAL'] ?? 0;
+        
+        // Marcas sin productos
+        $stats['sin_productos'] = $stats['total_activas'] - $stats['con_productos'];
+        
+        return $stats;
+    }
+
+    public static function tieneProductos($marcaId)
+    {
+        $sql = "SELECT COUNT(*) as total FROM productos WHERE marca_id = $marcaId AND situacion = 1";
+        $resultado = self::SQL($sql);
+        
+        $data = $resultado->fetch(PDO::FETCH_ASSOC);
+        
+        if ($data && isset($data['total'])) {
+            return $data['total'] > 0;
+        } else if ($data && isset($data['TOTAL'])) {
+            return $data['TOTAL'] > 0;
+        } else {
+            return false;
+        }
+    }
+
+    public static function marcasPopulares()
+    {
+        $sql = "SELECT m.*, COUNT(p.producto_id) as total_productos
+                FROM marcas m 
+                LEFT JOIN productos p ON m.marca_id = p.marca_id AND p.situacion = 1
+                WHERE m.situacion = 1 
+                GROUP BY m.marca_id, m.marca_nombre, m.marca_descripcion, m.fecha_creacion, m.situacion
+                ORDER BY total_productos DESC, m.marca_nombre ASC
+                LIMIT 10";
+        return self::fetchArray($sql);
+    }
+
+
     public static function buscarAPI()
     {
         getHeadersApi();
         
         try {
-            $sql = "SELECT * FROM marcas WHERE situacion = 1 ORDER BY marca_nombre";
-            $marcas = Marcas::fetchArray($sql);
+            $marcas = self::marcasActivas();
             
             if (count($marcas) > 0) {
                 self::responder(1, 'Marcas encontradas', $marcas);
             } else {
-                self::responder(0, 'No hay marcas disponibles', []);
+                self::responder(1, 'No hay marcas disponibles', []);
             }
         } catch (Exception $e) {
             error_log("Error en buscarAPI marcas: " . $e->getMessage());
-            self::responder(0, 'Error al buscar marcas: ' . $e->getMessage());
+            self::responder(1, 'No hay marcas disponibles - Tabla no inicializada', []);
+        }
+    }
+
+    // NUEVA FUNCIONALIDAD: BÚSQUEDA CON FILTROS
+    public static function buscarFiltradoAPI()
+    {
+        getHeadersApi();
+        
+        try {
+            $filtros = [
+                'busqueda' => $_POST['busqueda'] ?? ''
+            ];
+            
+            $marcas = self::buscarConFiltros($filtros);
+            
+            if (count($marcas) > 0) {
+                self::responder(1, "Marcas filtradas encontradas", $marcas);
+            } else {
+                self::responder(1, 'No hay marcas con esos filtros', []);
+            }
+        } catch (Exception $e) {
+            error_log("Error en buscarFiltradoAPI: " . $e->getMessage());
+            self::responder(0, 'Error al filtrar marcas: ' . $e->getMessage());
+        }
+    }
+
+    // NUEVA FUNCIONALIDAD: ESTADÍSTICAS
+    public static function estadisticasAPI()
+    {
+        getHeadersApi();
+        
+        try {
+            $stats = self::estadisticasMarcas();
+            self::responder(1, 'Estadísticas obtenidas', $stats);
+        } catch (Exception $e) {
+            error_log("Error en estadisticasAPI: " . $e->getMessage());
+            self::responder(0, 'Error al obtener estadísticas: ' . $e->getMessage());
+        }
+    }
+
+    // NUEVA FUNCIONALIDAD: MARCAS POPULARES
+    public static function marcasPopularesAPI()
+    {
+        getHeadersApi();
+        
+        try {
+            $marcas = self::marcasPopulares();
+            
+            if (count($marcas) > 0) {
+                self::responder(1, 'Marcas populares encontradas', $marcas);
+            } else {
+                self::responder(1, 'No hay datos de marcas populares', []);
+            }
+        } catch (Exception $e) {
+            error_log("Error en marcasPopularesAPI: " . $e->getMessage());
+            self::responder(0, 'Error al obtener marcas populares: ' . $e->getMessage());
         }
     }
 
@@ -110,12 +246,6 @@ class MarcaController extends ActiveRecord
             
             $datosLimpios = self::limpiarDatos($_POST);
             $marca = new Marcas($datosLimpios);
-            
-            $errores = $marca->validar();
-            if (!empty($errores)) {
-                self::responder(0, implode(', ', $errores));
-                return;
-            }
             
             $resultado = $marca->crear();
             
@@ -163,12 +293,6 @@ class MarcaController extends ActiveRecord
             $datosLimpios = self::limpiarDatos($_POST);
             $marca->sincronizar($datosLimpios);
             
-            $errores = $marca->validar();
-            if (!empty($errores)) {
-                self::responder(0, implode(', ', $errores));
-                return;
-            }
-            
             $resultado = $marca->actualizar();
             
             if ($resultado['resultado'] >= 0) {
@@ -201,13 +325,14 @@ class MarcaController extends ActiveRecord
             }
             
             // Verificar si la marca tiene productos asociados
-            $verificarProductos = "SELECT COUNT(*) as total FROM productos WHERE marca_id = $id AND situacion = 1";
-            $resultadoProductos = self::SQL($verificarProductos);
-            $productos = $resultadoProductos->fetch(PDO::FETCH_ASSOC);
-            
-            if ($productos && isset($productos['total']) && $productos['total'] > 0) {
-                self::responder(0, 'No se puede eliminar la marca porque tiene productos asociados');
-                return;
+            try {
+                $tieneProductos = self::tieneProductos($id);
+                if ($tieneProductos) {
+                    self::responder(0, 'No se puede eliminar la marca porque tiene productos asociados');
+                    return;
+                }
+            } catch (Exception $productosError) {
+                error_log("Advertencia: No se pudo verificar productos para marca $id: " . $productosError->getMessage());
             }
             
             $marca->sincronizar(['situacion' => 0]);

@@ -18,9 +18,7 @@ class ClienteController extends ActiveRecord
     private static function responder($codigo, $mensaje, $data = null)
     {
         header('Content-Type: application/json; charset=utf-8');
-
-        // CORREGIDO: Siempre devolver 200 para que JavaScript pueda procesar la respuesta
-        http_response_code(200);  // CAMBIO PRINCIPAL AQUÍ
+        http_response_code(200);
 
         $respuesta = ['codigo' => $codigo, 'mensaje' => $mensaje];
         if ($data !== null) $respuesta['data'] = $data;
@@ -28,6 +26,7 @@ class ClienteController extends ActiveRecord
         echo json_encode($respuesta, JSON_UNESCAPED_UNICODE);
         exit;
     }
+   
     private static function validarCliente($datos)
     {
         if (empty($datos['cliente_nombres'])) {
@@ -51,8 +50,7 @@ class ClienteController extends ActiveRecord
         }
 
         if (!empty($datos['cliente_nit'])) {
-            $cliente = new Clientes();
-            if (!$cliente->validarNIT($datos['cliente_nit'])) {
+            if (!self::validarNIT($datos['cliente_nit'])) {
                 return 'El NIT ingresado no es válido';
             }
         }
@@ -60,24 +58,45 @@ class ClienteController extends ActiveRecord
         return null;
     }
 
+    // VALIDACIÓN DE NIT (movida del modelo)
+    public static function validarNIT($nit)
+    {
+        if (preg_match('/^(\d+)-?([\dkK])$/', $nit, $matches)) {
+            $numero = $matches[1];
+            $digitoVerificador = strtolower($matches[2]) === 'k' ? 10 : intval($matches[2]);
+            
+            $suma = 0;
+            $factor = strlen($numero) + 1;
+            
+            for ($i = 0; $i < strlen($numero); $i++) {
+                $suma += intval($numero[$i]) * $factor;
+                $factor--;
+            }
+            
+            $digitoCalculado = (11 - ($suma % 11)) % 11;
+            return $digitoCalculado === $digitoVerificador;
+        }
+        return false;
+    }
+
     private static function verificarDuplicados($datos, $excluirId = null)
     {
         if (!empty($datos['cliente_telefono'])) {
-            $clienteExistente = Clientes::buscarPorTelefono($datos['cliente_telefono']);
+            $clienteExistente = self::buscarPorTelefono($datos['cliente_telefono']);
             if ($clienteExistente && (!$excluirId || $clienteExistente['CLIENTE_ID'] != $excluirId)) {
                 return 'Ya existe un cliente con ese número de teléfono';
             }
         }
 
         if (!empty($datos['cliente_correo'])) {
-            $clienteExistente = Clientes::buscarPorCorreo($datos['cliente_correo']);
+            $clienteExistente = self::buscarPorCorreo($datos['cliente_correo']);
             if ($clienteExistente && (!$excluirId || $clienteExistente['CLIENTE_ID'] != $excluirId)) {
                 return 'Ya existe un cliente con ese correo electrónico';
             }
         }
 
         if (!empty($datos['cliente_nit'])) {
-            $clienteExistente = Clientes::buscarPorNIT($datos['cliente_nit']);
+            $clienteExistente = self::buscarPorNIT($datos['cliente_nit']);
             if ($clienteExistente && (!$excluirId || $clienteExistente['CLIENTE_ID'] != $excluirId)) {
                 return 'Ya existe un cliente con ese NIT';
             }
@@ -99,6 +118,110 @@ class ClienteController extends ActiveRecord
         ];
     }
 
+    public static function clientesActivos()
+    {
+        $query = "SELECT * FROM clientes WHERE cliente_situacion = 1 ORDER BY cliente_nombres";
+        return self::fetchArray($query);
+    }
+
+    public static function buscarPorTelefono($telefono)
+    {
+        $sql = "SELECT * FROM clientes WHERE cliente_telefono = '$telefono' AND cliente_situacion = 1";
+        $resultado = self::SQL($sql);
+        $data = $resultado->fetch(PDO::FETCH_ASSOC);
+        
+        error_log("Buscando por teléfono: $telefono");
+        error_log("Resultado: " . print_r($data, true));
+        
+        return $data;
+    }
+
+    public static function buscarPorCorreo($correo)
+    {
+        $sql = "SELECT * FROM clientes WHERE cliente_correo = '$correo' AND cliente_situacion = 1";
+        $resultado = self::SQL($sql);
+        $data = $resultado->fetch(PDO::FETCH_ASSOC);
+        
+        error_log("Buscando por correo: $correo");
+        error_log("Resultado: " . print_r($data, true));
+        
+        return $data;
+    }
+
+    public static function buscarPorNIT($nit)
+    {
+        $sql = "SELECT * FROM clientes WHERE cliente_nit = '$nit' AND cliente_situacion = 1";
+        $resultado = self::SQL($sql);
+        $data = $resultado->fetch(PDO::FETCH_ASSOC);
+        
+        error_log("Buscando por NIT: $nit");
+        error_log("Resultado: " . print_r($data, true));
+        
+        return $data;
+    }
+
+
+    public static function buscarConFiltros($filtros)
+    {
+        $sql = "SELECT * FROM clientes WHERE cliente_situacion = 1";
+        
+        $condiciones = [];
+        
+        if (!empty($filtros['busqueda'])) {
+            $busqueda = $filtros['busqueda'];
+            $condiciones[] = "(cliente_nombres LIKE '%$busqueda%' OR cliente_apellidos LIKE '%$busqueda%' OR cliente_telefono LIKE '%$busqueda%')";
+        }
+        
+        if (!empty($condiciones)) {
+            $sql .= " AND " . implode(" AND ", $condiciones);
+        }
+        
+        $sql .= " ORDER BY cliente_nombres";
+        
+        return self::fetchArray($sql);
+    }
+
+    public static function estadisticasClientes()
+    {
+        $stats = [];
+        
+        // Total clientes activos
+        $sql = "SELECT COUNT(*) as total FROM clientes WHERE cliente_situacion = 1";
+        $resultado = self::SQL($sql);
+        $data = $resultado->fetch(PDO::FETCH_ASSOC);
+        $stats['total_activos'] = $data['total'] ?? $data['TOTAL'] ?? 0;
+        
+        // Clientes con NIT
+        $sql = "SELECT COUNT(*) as total FROM clientes WHERE cliente_situacion = 1 AND cliente_nit IS NOT NULL AND cliente_nit != ''";
+        $resultado = self::SQL($sql);
+        $data = $resultado->fetch(PDO::FETCH_ASSOC);
+        $stats['con_nit'] = $data['total'] ?? $data['TOTAL'] ?? 0;
+        
+        // Clientes con correo
+        $sql = "SELECT COUNT(*) as total FROM clientes WHERE cliente_situacion = 1 AND cliente_correo IS NOT NULL AND cliente_correo != ''";
+        $resultado = self::SQL($sql);
+        $data = $resultado->fetch(PDO::FETCH_ASSOC);
+        $stats['con_correo'] = $data['total'] ?? $data['TOTAL'] ?? 0;
+        
+        return $stats;
+    }
+
+    public static function tieneVentas($clienteId)
+    {
+        $sql = "SELECT COUNT(*) as total FROM ventas WHERE cliente_id = $clienteId";
+        $resultado = self::SQL($sql);
+        
+        $data = $resultado->fetch(PDO::FETCH_ASSOC);
+        
+        if ($data && isset($data['total'])) {
+            return $data['total'] > 0;
+        } else if ($data && isset($data['TOTAL'])) {
+            return $data['TOTAL'] > 0;
+        } else {
+            return false;
+        }
+    }
+
     public static function guardarAPI()
     {
         getHeadersApi();
@@ -117,14 +240,14 @@ class ClienteController extends ActiveRecord
             $datosLimpios = self::limpiarDatos($_POST);
             $cliente = new Clientes($datosLimpios);
 
-            $errores = $cliente->validar();
-            if (!empty($errores)) {
-                self::responder(0, implode(', ', $errores));
+            $resultado = $cliente->crear();
+            if ($resultado['resultado'] >= 0) {
+                self::responder(1, 'Cliente guardado exitosamente');
+            } else {
+                self::responder(0, 'Error al guardar el cliente');
             }
-
-            $cliente->crear();
-            self::responder(1, 'Cliente guardado exitosamente');
         } catch (Exception $e) {
+            error_log("Error en guardarAPI clientes: " . $e->getMessage());
             self::responder(0, 'Error al guardar el cliente: ' . $e->getMessage());
         }
     }
@@ -134,21 +257,53 @@ class ClienteController extends ActiveRecord
         getHeadersApi();
 
         try {
-            $consulta = "SELECT * FROM clientes WHERE cliente_situacion = 1 ORDER BY cliente_nombres";
-            $resultado = self::SQL($consulta);
-
-            $clientes = [];
-            while ($fila = $resultado->fetch(PDO::FETCH_ASSOC)) {
-                $clientes[] = $fila;
-            }
+            $clientes = self::clientesActivos();
 
             if (count($clientes) > 0) {
                 self::responder(1, 'Clientes encontrados', $clientes);
             } else {
-                self::responder(0, 'No hay clientes disponibles', []);
+                self::responder(1, 'No hay clientes disponibles', []);
             }
         } catch (Exception $e) {
-            self::responder(0, 'Error de conexión: ' . $e->getMessage());
+            error_log("Error en buscarAPI clientes: " . $e->getMessage());
+            self::responder(1, 'No hay clientes disponibles - Tabla no inicializada', []);
+        }
+    }
+
+    // NUEVA FUNCIONALIDAD: BÚSQUEDA CON FILTROS
+    public static function buscarFiltradoAPI()
+    {
+        getHeadersApi();
+        
+        try {
+            $filtros = [
+                'busqueda' => $_POST['busqueda'] ?? ''
+            ];
+            
+            $clientes = self::buscarConFiltros($filtros);
+            
+            if (count($clientes) > 0) {
+                self::responder(1, "Clientes filtrados encontrados", $clientes);
+            } else {
+                self::responder(1, 'No hay clientes con esos filtros', []);
+            }
+        } catch (Exception $e) {
+            error_log("Error en buscarFiltradoAPI: " . $e->getMessage());
+            self::responder(0, 'Error al filtrar clientes: ' . $e->getMessage());
+        }
+    }
+
+    // NUEVA FUNCIONALIDAD: ESTADÍSTICAS
+    public static function estadisticasAPI()
+    {
+        getHeadersApi();
+        
+        try {
+            $stats = self::estadisticasClientes();
+            self::responder(1, 'Estadísticas obtenidas', $stats);
+        } catch (Exception $e) {
+            error_log("Error en estadisticasAPI: " . $e->getMessage());
+            self::responder(0, 'Error al obtener estadísticas: ' . $e->getMessage());
         }
     }
 
@@ -161,7 +316,6 @@ class ClienteController extends ActiveRecord
             return;
         }
 
-        // DEBUG: Ver el ID que se está excluyendo
         error_log("ID del cliente a modificar: " . $_POST['cliente_id']);
 
         $error = self::validarCliente($_POST);
@@ -170,7 +324,6 @@ class ClienteController extends ActiveRecord
             return;
         }
 
-        // IMPORTANTE: Pasar el ID para excluir al cliente actual
         $error = self::verificarDuplicados($_POST, $_POST['cliente_id']);
         if ($error) {
             error_log("Error de duplicados con ID excluido: " . $_POST['cliente_id']);
@@ -190,14 +343,12 @@ class ClienteController extends ActiveRecord
             $datosLimpios = self::limpiarDatos($_POST);
             $cliente->sincronizar($datosLimpios);
 
-            $errores = $cliente->validar();
-            if (!empty($errores)) {
-                self::responder(0, implode(', ', $errores));
-                return;
+            $resultado = $cliente->actualizar();
+            if ($resultado['resultado'] >= 0) {
+                self::responder(1, 'Cliente actualizado exitosamente');
+            } else {
+                self::responder(0, 'Error al actualizar el cliente');
             }
-
-            $cliente->actualizar();
-            self::responder(1, 'Cliente actualizado exitosamente');
         } catch (Exception $e) {
             error_log("Error en modificarAPI: " . $e->getMessage());
             self::responder(0, 'Error al actualizar el cliente: ' . $e->getMessage());
@@ -205,54 +356,48 @@ class ClienteController extends ActiveRecord
     }
 
     public static function eliminarAPI()
-{
-    getHeadersApi();
+    {
+        getHeadersApi();
 
-    if (empty($_POST['cliente_id']) || !is_numeric($_POST['cliente_id'])) {
-        self::responder(0, 'ID de cliente requerido y debe ser numérico');
-        return;
-    }
-
-    try {
-        $id = filter_var($_POST['cliente_id'], FILTER_SANITIZE_NUMBER_INT);
-        
-        $cliente = Clientes::find($id);
-        if (!$cliente) {
-            self::responder(0, 'Cliente no encontrado');
+        if (empty($_POST['cliente_id']) || !is_numeric($_POST['cliente_id'])) {
+            self::responder(0, 'ID de cliente requerido y debe ser numérico');
             return;
         }
 
-        // CORREGIDO: Verificar si el cliente tiene ventas o reparaciones asociadas
-        $verificarVentas = "SELECT COUNT(*) as total FROM ventas WHERE cliente_id = $id";
-        $resultadoVentas = self::SQL($verificarVentas);
-        
-        // CORREGIDO: Usar fetch(PDO::FETCH_ASSOC) para obtener array asociativo
-        $ventas = $resultadoVentas->fetch(PDO::FETCH_ASSOC);
-        
-        // DEBUG: Ver qué devuelve la consulta
-        error_log("Verificación de ventas para cliente $id: " . print_r($ventas, true));
-        
-        // CORREGIDO: Verificar que $ventas no sea null y tenga la clave 'total'
-        if ($ventas && isset($ventas['total']) && $ventas['total'] > 0) {
-            self::responder(0, 'No se puede eliminar el cliente porque tiene ventas o reparaciones asociadas');
-            return;
-        }
+        try {
+            $id = filter_var($_POST['cliente_id'], FILTER_SANITIZE_NUMBER_INT);
+            
+            $cliente = Clientes::find($id);
+            if (!$cliente) {
+                self::responder(0, 'Cliente no encontrado');
+                return;
+            }
 
-        // CORREGIDO: Usar eliminación lógica con el método actualizar
-        $cliente->sincronizar(['cliente_situacion' => 0]);
-        $resultado = $cliente->actualizar();
-        
-        if ($resultado['resultado'] >= 0) {  // Informix puede devolver 0 para actualizaciones exitosas
-            self::responder(1, 'El cliente ha sido eliminado correctamente');
-        } else {
-            self::responder(0, 'Error al eliminar el cliente');
+            // Verificar si el cliente tiene ventas o reparaciones asociadas
+            try {
+                $tieneVentas = self::tieneVentas($id);
+                if ($tieneVentas) {
+                    self::responder(0, 'No se puede eliminar el cliente porque tiene ventas o reparaciones asociadas');
+                    return;
+                }
+            } catch (Exception $ventasError) {
+                error_log("Advertencia: No se pudo verificar ventas para cliente $id: " . $ventasError->getMessage());
+            }
+
+            $cliente->sincronizar(['cliente_situacion' => 0]);
+            $resultado = $cliente->actualizar();
+            
+            if ($resultado['resultado'] >= 0) {
+                self::responder(1, 'El cliente ha sido eliminado correctamente');
+            } else {
+                self::responder(0, 'Error al eliminar el cliente');
+            }
+            
+        } catch (Exception $e) {
+            error_log("Error en eliminarAPI: " . $e->getMessage());
+            self::responder(0, 'Error al eliminar el cliente: ' . $e->getMessage());
         }
-        
-    } catch (Exception $e) {
-        error_log("Error en eliminarAPI: " . $e->getMessage());
-        self::responder(0, 'Error al eliminar el cliente: ' . $e->getMessage());
     }
-}
 
     public static function buscarPorTelefonoAPI()
     {
@@ -263,7 +408,7 @@ class ClienteController extends ActiveRecord
         }
 
         try {
-            $cliente = Clientes::buscarPorTelefono($_POST['telefono']);
+            $cliente = self::buscarPorTelefono($_POST['telefono']);
 
             if ($cliente) {
                 self::responder(1, 'Cliente encontrado', $cliente);

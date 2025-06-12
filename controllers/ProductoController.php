@@ -19,7 +19,7 @@ class ProductoController extends ActiveRecord
     private static function responder($codigo, $mensaje, $data = null)
     {
         header('Content-Type: application/json; charset=utf-8');
-        http_response_code(200); // Siempre 200 para evitar errores en JavaScript
+        http_response_code(200);
         
         $respuesta = ['codigo' => $codigo, 'mensaje' => $mensaje];
         if ($data !== null) $respuesta['data'] = $data;
@@ -28,9 +28,7 @@ class ProductoController extends ActiveRecord
         exit;
     }
 
-    // ========================================
-    // NUEVA FUNCIONALIDAD: VALIDACIÓN DINÁMICA POR TIPO
-    // ========================================
+
     
     private static function validarProducto($datos)
     {
@@ -53,14 +51,12 @@ class ProductoController extends ActiveRecord
         // VALIDACIONES ESPECÍFICAS POR TIPO
         switch ($datos['tipo_producto']) {
             case 'servicio':
-                // SERVICIOS: Solo validar descripción
                 if (empty($datos['descripcion'])) {
                     return 'Los servicios deben tener una descripción detallada del trabajo a realizar';
                 }
                 break;
                 
             case 'repuesto':
-                // REPUESTOS: Validaciones completas + descripción obligatoria
                 if (!is_numeric($datos['precio_compra']) || $datos['precio_compra'] < 0) {
                     return 'El precio de compra debe ser mayor o igual a 0';
                 }
@@ -77,16 +73,12 @@ class ProductoController extends ActiveRecord
                     return 'El stock mínimo debe ser mayor o igual a 0';
                 }
                 
-                // IMPORTANTE: Descripción obligatoria para repuestos
                 if (empty($datos['descripcion'])) {
                     return 'Los repuestos deben tener una descripción que especifique compatibilidad y características';
                 }
-                
-                // Modelo opcional para repuestos (pueden ser genéricos)
                 break;
                 
             case 'celular':
-                // CELULARES: Validaciones completas + modelo obligatorio
                 if (!is_numeric($datos['precio_compra']) || $datos['precio_compra'] < 0) {
                     return 'El precio de compra debe ser mayor o igual a 0';
                 }
@@ -103,7 +95,6 @@ class ProductoController extends ActiveRecord
                     return 'El stock mínimo debe ser mayor o igual a 0';
                 }
                 
-                // Modelo obligatorio para celulares
                 if (empty($datos['modelo'])) {
                     return 'El modelo es obligatorio para celulares';
                 }
@@ -116,7 +107,7 @@ class ProductoController extends ActiveRecord
     private static function verificarDuplicados($datos, $excluirId = null)
     {
         if (!empty($datos['nombre_producto'])) {
-            $productoExistente = Productos::buscarPorNombre($datos['nombre_producto'], $excluirId);
+            $productoExistente = self::buscarPorNombre($datos['nombre_producto'], $excluirId);
             if ($productoExistente) {
                 return 'Ya existe un producto con ese nombre';
             }
@@ -125,10 +116,6 @@ class ProductoController extends ActiveRecord
         return null;
     }
 
-    // ========================================
-    // FUNCIÓN MEJORADA: LIMPIAR DATOS SEGÚN TIPO
-    // ========================================
-    
     private static function limpiarDatos($datos)
     {
         $datosLimpios = [
@@ -144,9 +131,9 @@ class ProductoController extends ActiveRecord
             'situacion' => 1
         ];
         
-        // LÓGICA ESPECIAL: Para servicios, forzar valores por defecto
+        // Para servicios, forzar valores por defecto
         if ($datos['tipo_producto'] === 'servicio') {
-            $datosLimpios['modelo'] = '';
+            $datosLimpios['modelo'] = 'No aplica';
             $datosLimpios['precio_compra'] = 0;
             $datosLimpios['stock_actual'] = 0;
             $datosLimpios['stock_minimo'] = 0;
@@ -155,9 +142,126 @@ class ProductoController extends ActiveRecord
         return $datosLimpios;
     }
 
-    // ========================================
-    // MÉTODOS API MEJORADOS
-    // ========================================
+
+
+    public static function productosConMarca()
+    {
+        $sql = "SELECT p.*, m.marca_nombre 
+                FROM productos p 
+                LEFT JOIN marcas m ON p.marca_id = m.marca_id 
+                WHERE p.situacion = 1 
+                ORDER BY p.nombre_producto";
+        return self::fetchArray($sql);
+    }
+
+    public static function buscarConFiltros($filtros)
+    {
+        $sql = "SELECT p.*, m.marca_nombre 
+                FROM productos p 
+                LEFT JOIN marcas m ON p.marca_id = m.marca_id 
+                WHERE p.situacion = 1";
+        
+        $condiciones = [];
+        
+        if (!empty($filtros['tipo'])) {
+            $condiciones[] = "p.tipo_producto = '{$filtros['tipo']}'";
+        }
+        
+        if (!empty($filtros['marca'])) {
+            $condiciones[] = "p.marca_id = {$filtros['marca']}";
+        }
+        
+        if (!empty($filtros['stock_bajo'])) {
+            $condiciones[] = "p.stock_actual <= p.stock_minimo";
+        }
+        
+        if (!empty($condiciones)) {
+            $sql .= " AND " . implode(" AND ", $condiciones);
+        }
+        
+        $sql .= " ORDER BY p.nombre_producto";
+        
+        return self::fetchArray($sql);
+    }
+
+    public static function stockBajo()
+    {
+        $sql = "SELECT p.*, m.marca_nombre 
+                FROM productos p 
+                LEFT JOIN marcas m ON p.marca_id = m.marca_id 
+                WHERE p.situacion = 1 AND p.stock_actual <= p.stock_minimo AND p.tipo_producto != 'servicio'
+                ORDER BY p.stock_actual ASC";
+        return self::fetchArray($sql);
+    }
+
+    public static function stockCritico()
+    {
+        $sql = "SELECT p.*, m.marca_nombre 
+                FROM productos p 
+                LEFT JOIN marcas m ON p.marca_id = m.marca_id 
+                WHERE p.situacion = 1 AND p.stock_actual = 0 AND p.tipo_producto != 'servicio'
+                ORDER BY p.nombre_producto";
+        return self::fetchArray($sql);
+    }
+
+    public static function buscarPorNombre($nombre, $excluirId = null)
+    {
+        $sql = "SELECT * FROM productos WHERE nombre_producto = '$nombre' AND situacion = 1";
+        if ($excluirId) {
+            $sql .= " AND producto_id != $excluirId";
+        }
+        $resultado = self::SQL($sql);
+        return $resultado->fetch();
+    }
+
+    public static function tieneVentas($productoId)
+    {
+        $sql = "SELECT COUNT(*) as total FROM detalle_ventas WHERE producto_id = $productoId";
+        $resultado = self::SQL($sql);
+        
+        $data = $resultado->fetch(PDO::FETCH_ASSOC);
+        
+        if ($data && isset($data['total'])) {
+            return $data['total'] > 0;
+        } else if ($data && isset($data['TOTAL'])) {
+            return $data['TOTAL'] > 0;
+        } else {
+            return false;
+        }
+    }
+
+    
+    public static function obtenerAlertas()
+    {
+        $alertas = [];
+        
+        // Stock bajo
+        $stockBajo = self::stockBajo();
+        if (count($stockBajo) > 0) {
+            $alertas[] = [
+                'tipo' => 'warning',
+                'titulo' => 'Stock Bajo',
+                'mensaje' => count($stockBajo) . ' productos con stock bajo',
+                'cantidad' => count($stockBajo),
+                'productos' => array_slice($stockBajo, 0, 5)
+            ];
+        }
+        
+        // Stock crítico
+        $stockCritico = self::stockCritico();
+        if (count($stockCritico) > 0) {
+            $alertas[] = [
+                'tipo' => 'danger',
+                'titulo' => 'Stock Agotado',
+                'mensaje' => count($stockCritico) . ' productos sin stock',
+                'cantidad' => count($stockCritico),
+                'productos' => array_slice($stockCritico, 0, 5)
+            ];
+        }
+        
+        return $alertas;
+    }
+
 
     public static function buscarAPI()
     {
@@ -165,7 +269,7 @@ class ProductoController extends ActiveRecord
         getHeadersApi();
         
         try {
-            $productos = Productos::productosConMarca();
+            $productos = self::productosConMarca();
             
             if (count($productos) > 0) {
                 self::responder(1, 'Productos encontrados', $productos);
@@ -178,13 +282,60 @@ class ProductoController extends ActiveRecord
         }
     }
 
+    // NUEVA FUNCIONALIDAD: BÚSQUEDA CON FILTROS
+    public static function buscarFiltradoAPI()
+    {
+        ini_set('display_errors', 0);
+        getHeadersApi();
+        
+        try {
+            $filtros = [
+                'tipo' => $_POST['tipo'] ?? '',
+                'marca' => $_POST['marca'] ?? '',
+                'stock_bajo' => $_POST['stock_bajo'] ?? ''
+            ];
+            
+            $productos = self::buscarConFiltros($filtros);
+            
+            if (count($productos) > 0) {
+                self::responder(1, "Productos filtrados encontrados", $productos);
+            } else {
+                self::responder(1, 'No hay productos con esos filtros', []);
+            }
+        } catch (Exception $e) {
+            error_log("Error en buscarFiltradoAPI: " . $e->getMessage());
+            self::responder(0, 'Error al filtrar productos: ' . $e->getMessage());
+        }
+    }
+
+    // NUEVA FUNCIONALIDAD: ALERTAS
+    public static function alertasStockAPI()
+    {
+        ini_set('display_errors', 0);
+        getHeadersApi();
+        
+        try {
+            $alertas = self::obtenerAlertas();
+            
+            if (count($alertas) > 0) {
+                self::responder(1, 'Alertas de stock encontradas', $alertas);
+            } else {
+                self::responder(1, 'No hay alertas de stock', []);
+            }
+        } catch (Exception $e) {
+            error_log("Error en alertasStockAPI: " . $e->getMessage());
+            self::responder(0, 'Error al obtener alertas: ' . $e->getMessage());
+        }
+    }
+
     public static function buscarMarcasAPI()
     {
         ini_set('display_errors', 0);
         getHeadersApi();
         
         try {
-            $marcas = Marcas::marcasActivas();
+            // CORREGIDO: Usar método del controlador en lugar del modelo
+            $marcas = self::marcasActivas();
             
             if (count($marcas) > 0) {
                 self::responder(1, 'Marcas encontradas', $marcas);
@@ -195,6 +346,13 @@ class ProductoController extends ActiveRecord
             error_log("Error en buscarMarcasAPI: " . $e->getMessage());
             self::responder(0, 'Error al buscar marcas: ' . $e->getMessage());
         }
+    }
+
+    // AGREGAR MÉTODO MARCAS ACTIVAS AL PRODUCTO CONTROLLER
+    public static function marcasActivas()
+    {
+        $query = "SELECT * FROM marcas WHERE situacion = 1 ORDER BY marca_nombre";
+        return self::fetchArray($query);
     }
 
     public static function guardarAPI()
@@ -218,12 +376,6 @@ class ProductoController extends ActiveRecord
             $datosLimpios = self::limpiarDatos($_POST);
             $producto = new Productos($datosLimpios);
             
-            $errores = $producto->validar();
-            if (!empty($errores)) {
-                self::responder(0, implode(', ', $errores));
-                return;
-            }
-
             $resultado = $producto->crear();
             
             if ($resultado['resultado'] >= 0) {
@@ -271,12 +423,6 @@ class ProductoController extends ActiveRecord
             $datosLimpios = self::limpiarDatos($_POST);
             $producto->sincronizar($datosLimpios);
             
-            $errores = $producto->validar();
-            if (!empty($errores)) {
-                self::responder(0, implode(', ', $errores));
-                return;
-            }
-
             $resultado = $producto->actualizar();
             
             if ($resultado['resultado'] >= 0) {
@@ -309,9 +455,8 @@ class ProductoController extends ActiveRecord
                 return;
             }
 
-            // MEJORADO: Verificar ventas con manejo robusto
             try {
-                $tieneVentas = Productos::tieneVentas($id);
+                $tieneVentas = self::tieneVentas($id);
                 if ($tieneVentas) {
                     self::responder(0, 'No se puede eliminar el producto porque tiene ventas asociadas');
                     return;
@@ -340,7 +485,7 @@ class ProductoController extends ActiveRecord
         getHeadersApi();
         
         try {
-            $productos = Productos::stockBajo();
+            $productos = self::stockBajo();
             
             if (count($productos) > 0) {
                 self::responder(1, 'Productos con stock bajo encontrados', $productos);

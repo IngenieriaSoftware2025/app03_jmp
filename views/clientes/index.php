@@ -96,8 +96,11 @@
                 <div class="d-flex justify-content-between align-items-center mb-3">
                     <h3 class="mb-0">Clientes Registrados</h3>
                     <div class="d-flex gap-2">
-                        <button class="btn btn-primary" id="btnActualizar" onclick="buscarClientes()">
+                        <button class="btn btn-primary" id="btnActualizar">
                             <i class="bi bi-arrow-clockwise"></i> Actualizar
+                        </button>
+                        <button class="btn btn-info" id="btnEstadisticas">
+                            <i class="bi bi-bar-chart"></i> Estadísticas
                         </button>
                         <input type="text" class="form-control form-control-sm" id="buscarCliente"
                             placeholder="Buscar cliente..." style="width: 200px;">
@@ -114,6 +117,7 @@
                                 <th>NIT</th>
                                 <th>Teléfono</th>
                                 <th>Correo</th>
+                                <th>Dirección</th>
                                 <th>Acciones</th>
                             </tr>
                         </thead>

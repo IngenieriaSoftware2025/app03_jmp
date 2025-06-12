@@ -6,6 +6,7 @@ use MVC\Router;
 use Controllers\AppController;
 use Controllers\ClienteController;
 use Controllers\MarcaController;
+use Controllers\ProductoController;
 
 $router = new Router();
 $router->setBaseURL('/' . $_ENV['APP_NAME']);
@@ -27,5 +28,16 @@ $router->post('/marcas/buscarAPI', [MarcaController::class,'buscarAPI']);
 $router->post('/marcas/guardarAPI', [MarcaController::class,'guardarAPI']);
 $router->post('/marcas/modificarAPI', [MarcaController::class,'modificarAPI']);
 $router->post('/marcas/eliminarAPI', [MarcaController::class,'eliminarAPI']);
+
+
+// Rutas de Productos
+$router->get('/productos', [ProductoController::class, 'renderizarPagina']);
+$router->post('/productos/buscarAPI', [ProductoController::class, 'buscarAPI']);
+$router->post('/productos/buscarMarcasAPI', [ProductoController::class, 'buscarMarcasAPI']);
+$router->post('/productos/guardarAPI', [ProductoController::class, 'guardarAPI']);
+$router->post('/productos/modificarAPI', [ProductoController::class, 'modificarAPI']);
+$router->post('/productos/eliminarAPI', [ProductoController::class, 'eliminarAPI']);
+$router->post('/productos/stockBajoAPI', [ProductoController::class, 'stockBajoAPI']);
+
 
 $router->comprobarRutas();

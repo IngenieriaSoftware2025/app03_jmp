@@ -53,13 +53,9 @@ const buscar = async () => {
         
         const data = await respuesta.json();
         console.log('📦 Resultado completo:', data);
-        console.log('📊 Código:', data.codigo);
-        console.log('💬 Mensaje:', data.mensaje);
-        console.log('📄 Data:', data.data);
         
         if (data.codigo == 1) {
             console.log('✅ Marcas encontradas:', data.data.length);
-            console.log('🏷️ Primera marca:', data.data[0]);
             mostrarTabla(data.data);
             mostrarMensaje('success', 'Éxito', data.mensaje);
         } else {
@@ -80,18 +76,18 @@ const mostrarTabla = (marcas) => {
         tablaMarcas.destroy();
     }
     
-    // TABLA CON NOMBRES EN MAYÚSCULAS (como vienen de Informix)
+    // TABLA CON NOMBRES EN MINÚSCULAS (como vienen del servidor)
     tablaMarcas = new DataTable('#tablaMarcas', {
         language: lenguaje,
         data: marcas,
         columns: [
             { title: "No.", data: null, render: (data, type, row, meta) => meta.row + 1 },
-            { title: "Nombre", data: "MARCA_NOMBRE", defaultContent: "" },             // MAYÚSCULAS
-            { title: "Descripción", data: "MARCA_DESCRIPCION", defaultContent: "" },   // MAYÚSCULAS
-            { title: "Fecha Creación", data: "FECHA_CREACION", defaultContent: "" },   // MAYÚSCULAS
+            { title: "Nombre", data: "marca_nombre", defaultContent: "" },             // minúsculas ✅
+            { title: "Descripción", data: "marca_descripcion", defaultContent: "" },   // minúsculas ✅
+            { title: "Fecha Creación", data: "fecha_creacion", defaultContent: "" },   // minúsculas ✅
             { 
                 title: "Estado", 
-                data: "SITUACION",                                                     // MAYÚSCULAS
+                data: "situacion",                                                     // minúsculas ✅
                 render: (data) => {
                     return `<span class="badge ${data == 1 ? 'bg-success' : 'bg-danger'}">
                         ${data == 1 ? 'Activo' : 'Inactivo'}
@@ -100,7 +96,7 @@ const mostrarTabla = (marcas) => {
             },
             {
                 title: "Acciones",
-                data: "MARCA_ID",                                                      // MAYÚSCULAS
+                data: "marca_id",                                                      // minúsculas ✅
                 orderable: false,
                 render: (data, type, row) => {
                     if (!data) return '';
@@ -142,12 +138,6 @@ const guardar = async () => {
         datos.append('marca_nombre', document.getElementById('marca_nombre').value.trim());
         datos.append('marca_descripcion', document.getElementById('marca_descripcion').value.trim());
         
-        // DEBUG: Ver qué datos se están enviando
-        console.log('Datos a enviar:');
-        for (let [key, value] of datos.entries()) {
-            console.log(`${key}: ${value}`);
-        }
-        
         const url = accion === 'guardar' ? 
             '/app03_jmp/marcas/guardarAPI' : 
             '/app03_jmp/marcas/modificarAPI';
@@ -161,7 +151,6 @@ const guardar = async () => {
         });
         
         const data = await respuesta.json();
-        console.log('Respuesta del servidor:', data);
         
         if (data.codigo == 1) {
             mostrarMensaje('success', 'Éxito', data.mensaje);
@@ -187,15 +176,12 @@ const llenarFormulario = (e) => {
     accion = 'modificar';
     tituloModal.textContent = 'Modificar Marca';
     
-    // MAPEAR CAMPOS DE MAYÚSCULAS A MINÚSCULAS
-    document.getElementById('marca_id').value = marca.MARCA_ID || '';
-    document.getElementById('marca_nombre').value = marca.MARCA_NOMBRE || '';
-    document.getElementById('marca_descripcion').value = marca.MARCA_DESCRIPCION || '';
+    // CAMPOS VIENEN EN MINÚSCULAS del servidor ✅
+    document.getElementById('marca_id').value = marca.marca_id || '';
+    document.getElementById('marca_nombre').value = marca.marca_nombre || '';
+    document.getElementById('marca_descripcion').value = marca.marca_descripcion || '';
     
-    console.log('📝 Formulario llenado con:');
-    console.log('ID:', document.getElementById('marca_id').value);
-    console.log('Nombre:', document.getElementById('marca_nombre').value);
-    console.log('Descripción:', document.getElementById('marca_descripcion').value);
+    console.log('📝 Formulario llenado correctamente');
     
     modalMarca.show();
 };
@@ -276,8 +262,6 @@ const limpiarModal = () => {
     document.getElementById('marca_id').value = '';
     accion = 'guardar';
     tituloModal.textContent = 'Nueva Marca';
-    
-    console.log('🧹 Modal limpiado - ID:', document.getElementById('marca_id').value);
 };
 
 // Event listeners

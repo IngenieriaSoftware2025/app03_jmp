@@ -3,7 +3,6 @@ import DataTable from "datatables.net-bs5";
 import { validarFormulario } from "../funciones";
 import { lenguaje } from "../lenguaje";
 
-// Variables principales
 const form = document.getElementById("FormProductos");
 const btnGuardar = document.getElementById("BtnGuardar");
 const btnModificar = document.getElementById("BtnModificar");
@@ -12,7 +11,6 @@ const btnStockBajo = document.getElementById("btnStockBajo");
 
 let productosData = [];
 
-// Tabla de productos optimizada
 const tabla = new DataTable("#TableProductos", {
     language: lenguaje,
     data: [],
@@ -22,10 +20,7 @@ const tabla = new DataTable("#TableProductos", {
         { title: "Producto", data: "nombre_producto", defaultContent: "", width: "12%" },
         { title: "Marca", data: "marca_nombre", defaultContent: "", width: "8%" },
         { 
-            title: "Tipo", 
-            data: "tipo_producto", 
-            defaultContent: "",
-            width: "7%",
+            title: "Tipo", data: "tipo_producto", defaultContent: "", width: "7%",
             render: (data) => {
                 const badges = {
                     'celular': '<span class="badge bg-primary">Celular</span>',
@@ -37,33 +32,22 @@ const tabla = new DataTable("#TableProductos", {
         },
         { title: "Modelo", data: "modelo", defaultContent: "", width: "10%" },
         { 
-            title: "Descripción", 
-            data: "descripcion", 
-            defaultContent: "", 
-            width: "15%",
+            title: "Descripción", data: "descripcion", defaultContent: "", width: "15%",
             render: (data) => {
-                if (!data || data.trim() === '') return '<em class="text-muted">Sin descripción</em>';
-                return data.length > 50 ? 
-                    `<span title="${data}">${data.substring(0, 50)}...</span>` : 
-                    data;
+                if (!data?.trim()) return '<em class="text-muted">Sin descripción</em>';
+                return data.length > 50 ? `<span title="${data}">${data.substring(0, 50)}...</span>` : data;
             }
         },
         { 
-            title: "P. Compra", 
-            data: "precio_compra", 
-            width: "7%",
+            title: "P. Compra", data: "precio_compra", width: "7%",
             render: (data) => `Q ${parseFloat(data || 0).toFixed(2)}`
         },
         { 
-            title: "P. Venta", 
-            data: "precio_venta", 
-            width: "7%",
+            title: "P. Venta", data: "precio_venta", width: "7%",
             render: (data) => `Q ${parseFloat(data || 0).toFixed(2)}`
         },
         { 
-            title: "Stock", 
-            data: "stock_actual",
-            width: "5%",
+            title: "Stock", data: "stock_actual", width: "5%",
             render: (data, type, row) => {
                 if (row.tipo_producto === 'servicio') return '<span class="text-muted">N/A</span>';
                 const stock = parseInt(data || 0);
@@ -73,9 +57,7 @@ const tabla = new DataTable("#TableProductos", {
             }
         },
         {
-            title: "Estado",
-            data: "stock_actual",
-            width: "8%",
+            title: "Estado", data: "stock_actual", width: "8%",
             render: (data, type, row) => {
                 if (row.tipo_producto === 'servicio') return '<span class="badge bg-info">Servicio</span>';
                 const stock = parseInt(data || 0);
@@ -87,31 +69,15 @@ const tabla = new DataTable("#TableProductos", {
             }
         },
         {
-            title: "Acciones",
-            data: "producto_id",
-            orderable: false,
-            width: "16%",
-            render: (data, type, row, meta) => {
-                if (!data) return '';
-                
-                return `
-                    <button class="btn btn-warning btn-sm modificar" 
-                            data-index="${meta.row}" 
-                            title="Modificar">
-                        Modificar
-                    </button>
-                    <button class="btn btn-danger btn-sm eliminar ms-1" 
-                            data-id="${data}" 
-                            title="Eliminar">
-                        Eliminar
-                    </button>
-                `;
-            }
+            title: "Acciones", data: "producto_id", orderable: false, width: "16%",
+            render: (data, type, row, meta) => data ? `
+                <button class="btn btn-warning btn-sm modificar" data-index="${meta.row}" title="Modificar">Modificar</button>
+                <button class="btn btn-danger btn-sm eliminar ms-1" data-id="${data}" title="Eliminar">Eliminar</button>
+            ` : ''
         }
     ]
 });
 
-// Función para mostrar mensajes
 const mostrarMensaje = (tipo, titulo, texto) => {
     const config = {
         icon: tipo,
@@ -134,103 +100,76 @@ const mostrarMensaje = (tipo, titulo, texto) => {
 
 const manejarTipoProducto = () => {
     const tipo = document.getElementById('tipo_producto').value;
+    const elementos = {
+        modelo: document.getElementById('modelo'),
+        precioCompra: document.getElementById('precio_compra'),
+        stockActual: document.getElementById('stock_actual'),
+        stockMinimo: document.getElementById('stock_minimo'),
+        descripcion: document.getElementById('descripcion')
+    };
     
-    // Elementos que cambian según el tipo
-    const modelo = document.getElementById('modelo');
-    const precioCompra = document.getElementById('precio_compra');
-    const stockActual = document.getElementById('stock_actual');
-    const stockMinimo = document.getElementById('stock_minimo');
-    const descripcion = document.getElementById('descripcion');
+    const contenedores = {
+        modelo: elementos.modelo.closest('.col-lg-4'),
+        precioCompra: elementos.precioCompra.closest('.col-lg-4'),
+        stockActual: elementos.stockActual.closest('.col-lg-4'),
+        stockMinimo: elementos.stockMinimo.closest('.col-lg-4')
+    };
     
-    // Contenedores de los campos
-    const contenedorModelo = modelo.closest('.col-lg-4');
-    const contenedorPrecioCompra = precioCompra.closest('.col-lg-4');
-    const contenedorStockActual = stockActual.closest('.col-lg-4');
-    const contenedorStockMinimo = stockMinimo.closest('.col-lg-4');
-    
-    // Labels que pueden cambiar
-    const labelModelo = document.querySelector('label[for="modelo"]');
-    
-    // Resetear validaciones
-    [modelo, precioCompra, stockActual, stockMinimo, descripcion].forEach(input => {
+    Object.values(elementos).forEach(input => {
         input.classList.remove('is-invalid', 'is-valid');
         input.removeAttribute('required');
     });
     
-    switch(tipo) {
-        case 'celular':
-            contenedorModelo.style.display = 'block';
-            contenedorPrecioCompra.style.display = 'block';
-            contenedorStockActual.style.display = 'block';
-            contenedorStockMinimo.style.display = 'block';
-            
-            labelModelo.textContent = 'Modelo';
-            modelo.setAttribute('required', 'required');
-            modelo.placeholder = 'Ej: iPhone 15 Pro Max, Galaxy S24 Ultra';
-            precioCompra.setAttribute('required', 'required');
-            stockActual.setAttribute('required', 'required');
-            stockMinimo.setAttribute('required', 'required');
-            descripcion.placeholder = 'Características del celular (color, memoria, estado, etc.)';
-            
-            if (modelo.value === 'No aplica') modelo.value = '';
-            if (precioCompra.value === '0') precioCompra.value = '';
-            if (stockActual.value === '0') stockActual.value = '';
-            if (stockMinimo.value === '0') stockMinimo.value = '';
-            break;
-            
-        case 'repuesto':
-            contenedorModelo.style.display = 'block';
-            contenedorPrecioCompra.style.display = 'block';
-            contenedorStockActual.style.display = 'block';
-            contenedorStockMinimo.style.display = 'block';
-            
-            labelModelo.textContent = 'Compatibilidad';
-            modelo.placeholder = 'Ej: iPhone 14 Pro, Galaxy S22, Universal, Genérico';
-            precioCompra.setAttribute('required', 'required');
-            stockActual.setAttribute('required', 'required');
-            stockMinimo.setAttribute('required', 'required');
-            descripcion.setAttribute('required', 'required');
-            descripcion.placeholder = 'OBLIGATORIO: Especifique tipo de repuesto y compatibilidad (ej: Pantalla OLED original, Batería 3000mAh, Cable USB-C trenzado)';
-            
-            if (modelo.value === 'No aplica') modelo.value = '';
-            if (precioCompra.value === '0') precioCompra.value = '';
-            if (stockActual.value === '0') stockActual.value = '';
-            if (stockMinimo.value === '0') stockMinimo.value = '';
-            break;
-            
-        case 'servicio':
-            contenedorModelo.style.display = 'none';
-            contenedorPrecioCompra.style.display = 'none';
-            contenedorStockActual.style.display = 'none';
-            contenedorStockMinimo.style.display = 'none';
-            
-            modelo.value = 'No aplica';
-            precioCompra.value = '0';
-            stockActual.value = '0';
-            stockMinimo.value = '0';
-            
-            descripcion.setAttribute('required', 'required');
-            descripcion.placeholder = 'OBLIGATORIO: Detalle del servicio (reparación de pantalla, liberación, formateo, instalación, etc.)';
-            
-            console.log('🛠️ Servicio: Campos llenados automáticamente');
-            break;
-            
-        default:
-            contenedorModelo.style.display = 'block';
-            contenedorPrecioCompra.style.display = 'block';
-            contenedorStockActual.style.display = 'block';
-            contenedorStockMinimo.style.display = 'block';
-            labelModelo.textContent = 'Modelo';
-            break;
+    const configuraciones = {
+        celular: {
+            mostrar: ['modelo', 'precioCompra', 'stockActual', 'stockMinimo'],
+            requeridos: ['modelo', 'precioCompra', 'stockActual', 'stockMinimo'],
+            placeholders: {
+                modelo: 'Ej: iPhone 15 Pro Max, Galaxy S24 Ultra',
+                descripcion: 'Características del celular (color, memoria, estado, etc.)'
+            }
+        },
+        repuesto: {
+            mostrar: ['modelo', 'precioCompra', 'stockActual', 'stockMinimo'],
+            requeridos: ['precioCompra', 'stockActual', 'stockMinimo', 'descripcion'],
+            placeholders: {
+                modelo: 'Ej: iPhone 14 Pro, Galaxy S22, Universal, Genérico',
+                descripcion: 'OBLIGATORIO: Especifique tipo de repuesto y compatibilidad'
+            }
+        },
+        servicio: {
+            mostrar: [],
+            requeridos: ['descripcion'],
+            valores: { modelo: 'No aplica', precioCompra: '0', stockActual: '0', stockMinimo: '0' },
+            placeholders: {
+                descripcion: 'OBLIGATORIO: Detalle del servicio (reparación de pantalla, liberación, etc.)'
+            }
+        }
+    };
+    
+    const config = configuraciones[tipo] || configuraciones.celular;
+    
+    Object.keys(contenedores).forEach(key => {
+        contenedores[key].style.display = config.mostrar.includes(key) ? 'block' : 'none';
+    });
+    
+    if (config.valores) {
+        Object.entries(config.valores).forEach(([campo, valor]) => {
+            elementos[campo].value = valor;
+        });
     }
+    
+    config.requeridos.forEach(campo => elementos[campo]?.setAttribute('required', 'required'));
+    Object.entries(config.placeholders || {}).forEach(([campo, placeholder]) => {
+        if (elementos[campo]) elementos[campo].placeholder = placeholder;
+    });
     
     calcularGanancia();
 };
 
-// Cargar marcas en el select
 const cargarMarcas = async () => {
     try {
-        const respuesta = await fetch('/app03_jmp/productos/buscarMarcasAPI', {
+        const respuesta = await fetch('./productos/buscarMarcasAPI', {
             method: 'POST'
         });
         const resultado = await respuesta.json();
@@ -240,10 +179,9 @@ const cargarMarcas = async () => {
         
         if (resultado.codigo === 1 && resultado.data) {
             resultado.data.forEach(marca => {
-                const option = document.createElement('option');
-                option.value = marca.marca_id;
-                option.textContent = marca.marca_nombre;
-                selectMarca.appendChild(option);
+                selectMarca.insertAdjacentHTML('beforeend', 
+                    `<option value="${marca.marca_id}">${marca.marca_nombre}</option>`
+                );
             });
         }
     } catch (error) {
@@ -251,12 +189,11 @@ const cargarMarcas = async () => {
     }
 };
 
-// Buscar productos
 const buscarProductos = async () => {
     console.log('🔍 Iniciando búsqueda de productos...');
     
     try {
-        const respuesta = await fetch('/app03_jmp/productos/buscarAPI', {
+        const respuesta = await fetch('./productos/buscarAPI', {
             method: 'POST'
         });
         
@@ -268,22 +205,15 @@ const buscarProductos = async () => {
         console.log('📦 Resultado:', resultado);
         
         if (resultado.codigo === 1) {
-            if (resultado.data && resultado.data.length > 0) {
-                console.log('✅ Productos encontrados:', resultado.data.length);
-                
-
-                productosData = resultado.data;
-                
-                tabla.clear().rows.add(resultado.data).draw();
-                mostrarMensaje('success', 'Productos cargados', `${resultado.data.length} productos encontrados`);
+            productosData = resultado.data || [];
+            if (productosData.length > 0) {
+                tabla.clear().rows.add(productosData).draw();
+                mostrarMensaje('success', 'Productos cargados', `${productosData.length} productos encontrados`);
             } else {
-                console.log('📭 Sin productos:', resultado.mensaje);
-                productosData = [];
                 tabla.clear().draw();
                 mostrarMensaje('info', 'Sin productos', 'No hay productos registrados. Agregue el primer producto.');
             }
         } else {
-            console.log('⚠️ Error del sistema:', resultado.mensaje);
             productosData = [];
             tabla.clear().draw();
             mostrarMensaje('error', 'Error del sistema', resultado.mensaje);
@@ -296,7 +226,6 @@ const buscarProductos = async () => {
     }
 };
 
-// Calcular ganancia con lógica para servicios
 const calcularGanancia = () => {
     const tipo = document.getElementById('tipo_producto').value;
     const precioCompra = parseFloat(document.getElementById('precio_compra').value) || 0;
@@ -317,65 +246,48 @@ const calcularGanancia = () => {
         alertaStock.className = 'alert alert-info';
         estadoStock.textContent = 'No Aplica';
     } else {
-        if (stockActual <= stockMinimo) {
-            alertaStock.className = 'alert alert-danger';
-            estadoStock.textContent = 'Stock Bajo';
-        } else if (stockActual <= stockMinimo * 2) {
-            alertaStock.className = 'alert alert-warning';
-            estadoStock.textContent = 'Advertencia';
-        } else {
-            alertaStock.className = 'alert alert-success';
-            estadoStock.textContent = 'Normal';
-        }
+        const estados = {
+            critico: { clase: 'alert alert-danger', texto: 'Stock Bajo' },
+            advertencia: { clase: 'alert alert-warning', texto: 'Advertencia' },
+            normal: { clase: 'alert alert-success', texto: 'Normal' }
+        };
+        
+        const estado = stockActual <= stockMinimo ? 'critico' : 
+                      stockActual <= stockMinimo * 2 ? 'advertencia' : 'normal';
+        
+        alertaStock.className = estados[estado].clase;
+        estadoStock.textContent = estados[estado].texto;
     }
     
     document.getElementById('indicadores').style.display = 'block';
 };
 
-// Validar precios
 const validarPrecios = () => {
     const tipo = document.getElementById('tipo_producto').value;
     const precioCompra = parseFloat(document.getElementById('precio_compra').value) || 0;
     const precioVenta = parseFloat(document.getElementById('precio_venta').value) || 0;
     const inputVenta = document.getElementById('precio_venta');
     
-    if (tipo === 'servicio') {
-        if (precioVenta > 0) {
-            inputVenta.classList.remove('is-invalid');
-            inputVenta.classList.add('is-valid');
-        }
-    } else {
-        if (precioVenta > 0 && precioCompra > 0) {
-            if (precioVenta <= precioCompra) {
-                inputVenta.classList.add('is-invalid');
-                inputVenta.classList.remove('is-valid');
-            } else {
-                inputVenta.classList.remove('is-invalid');
-                inputVenta.classList.add('is-valid');
-            }
-        }
-    }
+    const esValido = tipo === 'servicio' ? precioVenta > 0 : 
+                     (precioVenta > 0 && precioCompra > 0 && precioVenta > precioCompra);
+    
+    inputVenta.classList.toggle('is-valid', esValido);
+    inputVenta.classList.toggle('is-invalid', !esValido);
     
     calcularGanancia();
 };
 
-// Función para garantizar valores por defecto antes de enviar
 const garantizarValoresPorDefecto = () => {
-    const tipo = document.getElementById('tipo_producto').value;
-    
-    if (tipo === 'servicio') {
-        document.getElementById('modelo').value = 'No aplica';
-        document.getElementById('precio_compra').value = '0';
-        document.getElementById('stock_actual').value = '0';
-        document.getElementById('stock_minimo').value = '0';
-        console.log('🛠️ Valores garantizados para servicio antes de enviar');
+    if (document.getElementById('tipo_producto').value === 'servicio') {
+        ['modelo', 'precio_compra', 'stock_actual', 'stock_minimo'].forEach(campo => {
+            const valores = { modelo: 'No aplica', precio_compra: '0', stock_actual: '0', stock_minimo: '0' };
+            document.getElementById(campo).value = valores[campo];
+        });
     }
 };
 
-// Guardar producto
 const guardarProducto = async (e) => {
     e.preventDefault();
-    
     garantizarValoresPorDefecto();
     
     if (!validarFormulario(form, ["producto_id"])) {
@@ -398,7 +310,7 @@ const guardarProducto = async (e) => {
         datos.append('stock_minimo', document.getElementById('stock_minimo').value);
         datos.append('descripcion', document.getElementById('descripcion').value.trim());
         
-        const respuesta = await fetch('/app03_jmp/productos/guardarAPI', {
+        const respuesta = await fetch('./productos/guardarAPI', {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/x-www-form-urlencoded',
@@ -421,7 +333,6 @@ const guardarProducto = async (e) => {
     btnGuardar.disabled = false;
 };
 
-// Modificar producto
 const modificarProducto = async (e) => {
     e.preventDefault();
     
@@ -455,7 +366,7 @@ const modificarProducto = async (e) => {
         datos.append('stock_minimo', document.getElementById('stock_minimo').value);
         datos.append('descripcion', document.getElementById('descripcion').value.trim());
         
-        const respuesta = await fetch('/app03_jmp/productos/modificarAPI', {
+        const respuesta = await fetch('./productos/modificarAPI', {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/x-www-form-urlencoded',
@@ -478,7 +389,6 @@ const modificarProducto = async (e) => {
     btnModificar.disabled = false;
 };
 
-// Eliminar producto
 const eliminarProducto = async (e) => {
     const id = e.target.dataset.id;
     
@@ -499,7 +409,7 @@ const eliminarProducto = async (e) => {
         const datos = new URLSearchParams();
         datos.append('producto_id', id);
         
-        const respuesta = await fetch('/app03_jmp/productos/eliminarAPI', {
+        const respuesta = await fetch('./productos/eliminarAPI', {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/x-www-form-urlencoded',
@@ -538,13 +448,9 @@ const eliminarProducto = async (e) => {
     }
 };
 
-
 const llenarFormulario = (e) => {
     try {
-        // OBTENER ÍNDICE DEL BOTÓN
         const index = parseInt(e.target.dataset.index);
-        
-        // OBTENER PRODUCTO DE LA VARIABLE GLOBAL
         const producto = productosData[index];
         
         if (!producto) {
@@ -552,29 +458,17 @@ const llenarFormulario = (e) => {
             return;
         }
         
-        console.log('📦 Producto recibido:', producto);
-        
-        // Llenar todos los campos
-        document.getElementById('producto_id').value = producto.producto_id || '';
-        document.getElementById('nombre_producto').value = producto.nombre_producto || '';
-        document.getElementById('marca_id').value = producto.marca_id || '';
-        document.getElementById('tipo_producto').value = producto.tipo_producto || '';
-        document.getElementById('modelo').value = producto.modelo || '';
-        document.getElementById('precio_compra').value = producto.precio_compra || '';
-        document.getElementById('precio_venta').value = producto.precio_venta || '';
-        document.getElementById('stock_actual').value = producto.stock_actual || '';
-        document.getElementById('stock_minimo').value = producto.stock_minimo || '';
-        document.getElementById('descripcion').value = producto.descripcion || '';
+        ['producto_id', 'nombre_producto', 'marca_id', 'tipo_producto', 'modelo', 
+         'precio_compra', 'precio_venta', 'stock_actual', 'stock_minimo', 'descripcion']
+        .forEach(campo => {
+            const input = document.getElementById(campo);
+            if (input) input.value = producto[campo] || '';
+        });
 
-        // Aplicar lógica según el tipo de producto
         manejarTipoProducto();
-
         btnGuardar.classList.add("d-none");
         btnModificar.classList.remove("d-none");
-        
-        // Calcular indicadores
         calcularGanancia();
-        
         window.scrollTo({ top: 0, behavior: 'smooth' });
         
     } catch (error) {
@@ -583,7 +477,6 @@ const llenarFormulario = (e) => {
     }
 };
 
-// Limpiar formulario
 const limpiarFormulario = () => {
     form.reset();
     document.getElementById('producto_id').value = '';
@@ -596,20 +489,16 @@ const limpiarFormulario = () => {
     });
     
     document.getElementById('indicadores').style.display = 'none';
-    
     manejarTipoProducto();
 };
 
-// Ver productos con stock bajo
 const verStockBajo = async () => {
     try {
-        const respuesta = await fetch('/app03_jmp/productos/stockBajoAPI', {
+        const resultado = await fetch('./productos/stockBajoAPI', {
             method: 'POST'
-        });
-        const resultado = await respuesta.json();
+        }).then(response => response.json());
         
         if (resultado.codigo === 1 && resultado.data.length > 0) {
-            // ACTUALIZAR TAMBIÉN LA VARIABLE GLOBAL
             productosData = resultado.data;
             tabla.clear().rows.add(resultado.data).draw();
             mostrarMensaje('warning', 'Stock Bajo', `Se encontraron ${resultado.data.length} productos con stock bajo`);
@@ -634,7 +523,6 @@ document.addEventListener('DOMContentLoaded', () => {
     btnStockBajo.addEventListener("click", verStockBajo);
     
     document.getElementById("tipo_producto").addEventListener("change", manejarTipoProducto);
-    
     document.getElementById("precio_compra").addEventListener("input", validarPrecios);
     document.getElementById("precio_venta").addEventListener("input", validarPrecios);
     document.getElementById("stock_actual").addEventListener("input", calcularGanancia);

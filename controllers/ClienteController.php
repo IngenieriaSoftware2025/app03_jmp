@@ -12,7 +12,12 @@ class ClienteController extends ActiveRecord
 {
     public static function renderizarPagina(Router $router)
     {
-        $router->render('clientes/index', []);
+        session_start();
+        if(!isset($_SESSION['nombre'])) {
+            header("Location: ./");
+            exit;
+        }
+        $router->render('clientes/index', [], 'layouts/menu');
     }
 
     private static function responder($codigo, $mensaje, $data = null)
@@ -58,7 +63,6 @@ class ClienteController extends ActiveRecord
         return null;
     }
 
-    // VALIDACIÓN DE NIT (movida del modelo)
     public static function validarNIT($nit)
     {
         if (preg_match('/^(\d+)-?([\dkK])$/', $nit, $matches)) {
@@ -129,10 +133,6 @@ class ClienteController extends ActiveRecord
         $sql = "SELECT * FROM clientes WHERE cliente_telefono = '$telefono' AND cliente_situacion = 1";
         $resultado = self::SQL($sql);
         $data = $resultado->fetch(PDO::FETCH_ASSOC);
-        
-        error_log("Buscando por teléfono: $telefono");
-        error_log("Resultado: " . print_r($data, true));
-        
         return $data;
     }
 
@@ -141,10 +141,6 @@ class ClienteController extends ActiveRecord
         $sql = "SELECT * FROM clientes WHERE cliente_correo = '$correo' AND cliente_situacion = 1";
         $resultado = self::SQL($sql);
         $data = $resultado->fetch(PDO::FETCH_ASSOC);
-        
-        error_log("Buscando por correo: $correo");
-        error_log("Resultado: " . print_r($data, true));
-        
         return $data;
     }
 
@@ -153,13 +149,8 @@ class ClienteController extends ActiveRecord
         $sql = "SELECT * FROM clientes WHERE cliente_nit = '$nit' AND cliente_situacion = 1";
         $resultado = self::SQL($sql);
         $data = $resultado->fetch(PDO::FETCH_ASSOC);
-        
-        error_log("Buscando por NIT: $nit");
-        error_log("Resultado: " . print_r($data, true));
-        
         return $data;
     }
-
 
     public static function buscarConFiltros($filtros)
     {
@@ -185,19 +176,16 @@ class ClienteController extends ActiveRecord
     {
         $stats = [];
         
-        // Total clientes activos
         $sql = "SELECT COUNT(*) as total FROM clientes WHERE cliente_situacion = 1";
         $resultado = self::SQL($sql);
         $data = $resultado->fetch(PDO::FETCH_ASSOC);
         $stats['total_activos'] = $data['total'] ?? $data['TOTAL'] ?? 0;
         
-        // Clientes con NIT
         $sql = "SELECT COUNT(*) as total FROM clientes WHERE cliente_situacion = 1 AND cliente_nit IS NOT NULL AND cliente_nit != ''";
         $resultado = self::SQL($sql);
         $data = $resultado->fetch(PDO::FETCH_ASSOC);
         $stats['con_nit'] = $data['total'] ?? $data['TOTAL'] ?? 0;
         
-        // Clientes con correo
         $sql = "SELECT COUNT(*) as total FROM clientes WHERE cliente_situacion = 1 AND cliente_correo IS NOT NULL AND cliente_correo != ''";
         $resultado = self::SQL($sql);
         $data = $resultado->fetch(PDO::FETCH_ASSOC);
@@ -224,7 +212,7 @@ class ClienteController extends ActiveRecord
 
     public static function guardarAPI()
     {
-        getHeadersApi();
+        isAuthApi();
 
         $error = self::validarCliente($_POST);
         if ($error) {
@@ -254,7 +242,7 @@ class ClienteController extends ActiveRecord
 
     public static function buscarAPI()
     {
-        getHeadersApi();
+        isAuthApi();
 
         try {
             $clientes = self::clientesActivos();
@@ -270,10 +258,9 @@ class ClienteController extends ActiveRecord
         }
     }
 
-    // NUEVA FUNCIONALIDAD: BÚSQUEDA CON FILTROS
     public static function buscarFiltradoAPI()
     {
-        getHeadersApi();
+        isAuthApi();
         
         try {
             $filtros = [
@@ -293,10 +280,9 @@ class ClienteController extends ActiveRecord
         }
     }
 
-    // NUEVA FUNCIONALIDAD: ESTADÍSTICAS
     public static function estadisticasAPI()
     {
-        getHeadersApi();
+        isAuthApi();
         
         try {
             $stats = self::estadisticasClientes();
@@ -309,14 +295,12 @@ class ClienteController extends ActiveRecord
 
     public static function modificarAPI()
     {
-        getHeadersApi();
+        isAuthApi();
 
         if (empty($_POST['cliente_id']) || !is_numeric($_POST['cliente_id'])) {
             self::responder(0, 'ID de cliente requerido y debe ser numérico');
             return;
         }
-
-        error_log("ID del cliente a modificar: " . $_POST['cliente_id']);
 
         $error = self::validarCliente($_POST);
         if ($error) {
@@ -326,7 +310,6 @@ class ClienteController extends ActiveRecord
 
         $error = self::verificarDuplicados($_POST, $_POST['cliente_id']);
         if ($error) {
-            error_log("Error de duplicados con ID excluido: " . $_POST['cliente_id']);
             self::responder(0, $error);
             return;
         }
@@ -357,7 +340,7 @@ class ClienteController extends ActiveRecord
 
     public static function eliminarAPI()
     {
-        getHeadersApi();
+        isAuthApi();
 
         if (empty($_POST['cliente_id']) || !is_numeric($_POST['cliente_id'])) {
             self::responder(0, 'ID de cliente requerido y debe ser numérico');
@@ -373,7 +356,6 @@ class ClienteController extends ActiveRecord
                 return;
             }
 
-            // Verificar si el cliente tiene ventas o reparaciones asociadas
             try {
                 $tieneVentas = self::tieneVentas($id);
                 if ($tieneVentas) {
@@ -401,7 +383,7 @@ class ClienteController extends ActiveRecord
 
     public static function buscarPorTelefonoAPI()
     {
-        getHeadersApi();
+        isAuthApi();
 
         if (empty($_POST['telefono'])) {
             self::responder(0, 'Número de teléfono requerido');

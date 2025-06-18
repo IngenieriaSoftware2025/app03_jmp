@@ -12,7 +12,12 @@ class MarcaController extends ActiveRecord
 {
     public static function renderizarPagina(Router $router)
     {
-        $router->render('marcas/index', []);
+        session_start();
+        if(!isset($_SESSION['nombre']) || !isset($_SESSION['ADMIN'])) {
+            header("Location: ./");
+            exit;
+        }
+        $router->render('marcas/index', [], 'layouts/menu');
     }
 
     private static function responder($codigo, $mensaje, $data = null)
@@ -26,8 +31,6 @@ class MarcaController extends ActiveRecord
         echo json_encode($respuesta, JSON_UNESCAPED_UNICODE);
         exit;
     }
-
-
     
     private static function validarMarca($datos)
     {
@@ -70,9 +73,6 @@ class MarcaController extends ActiveRecord
         ];
     }
 
-
-    // ========================================
-
     public static function marcasActivas()
     {
         $query = "SELECT * FROM marcas WHERE situacion = 1 ORDER BY marca_nombre";
@@ -103,13 +103,11 @@ class MarcaController extends ActiveRecord
     {
         $stats = [];
         
-        // Total marcas activas
         $sql = "SELECT COUNT(*) as total FROM marcas WHERE situacion = 1";
         $resultado = self::SQL($sql);
         $data = $resultado->fetch(PDO::FETCH_ASSOC);
         $stats['total_activas'] = $data['total'] ?? $data['TOTAL'] ?? 0;
         
-        // Marcas con productos
         $sql = "SELECT COUNT(DISTINCT m.marca_id) as total 
                 FROM marcas m 
                 INNER JOIN productos p ON m.marca_id = p.marca_id 
@@ -118,7 +116,6 @@ class MarcaController extends ActiveRecord
         $data = $resultado->fetch(PDO::FETCH_ASSOC);
         $stats['con_productos'] = $data['total'] ?? $data['TOTAL'] ?? 0;
         
-        // Marcas sin productos
         $stats['sin_productos'] = $stats['total_activas'] - $stats['con_productos'];
         
         return $stats;
@@ -152,10 +149,9 @@ class MarcaController extends ActiveRecord
         return self::fetchArray($sql);
     }
 
-
     public static function buscarAPI()
     {
-        getHeadersApi();
+        hasPermissionApi(['ADMIN']);
         
         try {
             $marcas = self::marcasActivas();
@@ -171,10 +167,9 @@ class MarcaController extends ActiveRecord
         }
     }
 
-    // NUEVA FUNCIONALIDAD: BÚSQUEDA CON FILTROS
     public static function buscarFiltradoAPI()
     {
-        getHeadersApi();
+        hasPermissionApi(['ADMIN']);
         
         try {
             $filtros = [
@@ -194,10 +189,9 @@ class MarcaController extends ActiveRecord
         }
     }
 
-    // NUEVA FUNCIONALIDAD: ESTADÍSTICAS
     public static function estadisticasAPI()
     {
-        getHeadersApi();
+        hasPermissionApi(['ADMIN']);
         
         try {
             $stats = self::estadisticasMarcas();
@@ -208,10 +202,9 @@ class MarcaController extends ActiveRecord
         }
     }
 
-    // NUEVA FUNCIONALIDAD: MARCAS POPULARES
     public static function marcasPopularesAPI()
     {
-        getHeadersApi();
+        hasPermissionApi(['ADMIN']);
         
         try {
             $marcas = self::marcasPopulares();
@@ -229,7 +222,7 @@ class MarcaController extends ActiveRecord
 
     public static function guardarAPI()
     {
-        getHeadersApi();
+        hasPermissionApi(['ADMIN']);
         
         try {
             $error = self::validarMarca($_POST);
@@ -262,7 +255,7 @@ class MarcaController extends ActiveRecord
 
     public static function modificarAPI()
     {
-        getHeadersApi();
+        hasPermissionApi(['ADMIN']);
         
         try {
             if (empty($_POST['marca_id']) || !is_numeric($_POST['marca_id'])) {
@@ -308,7 +301,7 @@ class MarcaController extends ActiveRecord
 
     public static function eliminarAPI()
     {
-        getHeadersApi();
+        hasPermissionApi(['ADMIN']);
         
         try {
             if (empty($_POST['marca_id']) || !is_numeric($_POST['marca_id'])) {
@@ -324,7 +317,6 @@ class MarcaController extends ActiveRecord
                 return;
             }
             
-            // Verificar si la marca tiene productos asociados
             try {
                 $tieneProductos = self::tieneProductos($id);
                 if ($tieneProductos) {

@@ -61,3 +61,47 @@ CREATE TABLE detalle_ventas (
     FOREIGN KEY (venta_id) REFERENCES ventas(venta_id),
     FOREIGN KEY (producto_id) REFERENCES productos(producto_id)
 );
+
+
+
+-- Tabla de usuarios
+CREATE TABLE usuario (
+    usu_id SERIAL PRIMARY KEY,
+    usu_nombre VARCHAR(50),
+    usu_codigo INTEGER,
+    usu_password VARCHAR(150),
+    usu_situacion SMALLINT DEFAULT 1
+);
+
+-- Tabla de roles
+CREATE TABLE rol (
+    rol_id SERIAL PRIMARY KEY,
+    rol_nombre VARCHAR(75),
+    rol_nombre_ct VARCHAR(25),
+    rol_situacion SMALLINT DEFAULT 1
+);
+
+-- Tabla de permisos
+CREATE TABLE permiso (
+    permiso_id SERIAL PRIMARY KEY,
+    permiso_usuario INTEGER,
+    permiso_rol INTEGER,
+    permiso_situacion SMALLINT DEFAULT 1,
+    FOREIGN KEY (permiso_usuario) REFERENCES usuario (usu_id),
+    FOREIGN KEY (permiso_rol) REFERENCES rol (rol_id)
+);
+
+-- INSERT USUARIOS (password: 123456)
+INSERT INTO usuario (usu_nombre, usu_codigo, usu_password) VALUES 
+('ADMINISTRADOR MORATAYA', 12345678, '$2y$10$Nz6/ESQw7b7xW1Q2j.WEM.g5LQ/NSSmHnhZpfolFAH.ltD0GGRKGS'),
+('EMPLEADO VENTAS', 12345679, '$2y$10$Nz6/ESQw7b7xW1Q2j.WEM.g5LQ/NSSmHnhZpfolFAH.ltD0GGRKGS'),
+('EMPLEADO REPARACIONES', 12345670, '$2y$10$Nz6/ESQw7b7xW1Q2j.WEM.g5LQ/NSSmHnhZpfolFAH.ltD0GGRKGS');
+
+-- ROLES
+INSERT INTO rol (rol_nombre, rol_nombre_ct) VALUES 
+('ADMINISTRADOR', 'ADMIN'),
+('EMPLEADO', 'USER');
+
+-- PERMISOS
+INSERT INTO permiso (permiso_usuario, permiso_rol) VALUES 
+(1, 1), (2, 2), (3, 2);

@@ -13,7 +13,12 @@ class ProductoController extends ActiveRecord
 {
     public static function renderizarPagina(Router $router)
     {
-        $router->render('productos/index', []);
+        session_start();
+        if(!isset($_SESSION['nombre'])) {
+            header("Location: ./");
+            exit;
+        }
+        $router->render('productos/index', [], 'layouts/menu');
     }
 
     private static function responder($codigo, $mensaje, $data = null)
@@ -27,8 +32,6 @@ class ProductoController extends ActiveRecord
         echo json_encode($respuesta, JSON_UNESCAPED_UNICODE);
         exit;
     }
-
-
     
     private static function validarProducto($datos)
     {
@@ -48,7 +51,6 @@ class ProductoController extends ActiveRecord
             return 'El precio de venta debe ser mayor a 0';
         }
         
-        // VALIDACIONES ESPECÍFICAS POR TIPO
         switch ($datos['tipo_producto']) {
             case 'servicio':
                 if (empty($datos['descripcion'])) {
@@ -131,7 +133,6 @@ class ProductoController extends ActiveRecord
             'situacion' => 1
         ];
         
-        // Para servicios, forzar valores por defecto
         if ($datos['tipo_producto'] === 'servicio') {
             $datosLimpios['modelo'] = 'No aplica';
             $datosLimpios['precio_compra'] = 0;
@@ -141,8 +142,6 @@ class ProductoController extends ActiveRecord
         
         return $datosLimpios;
     }
-
-
 
     public static function productosConMarca()
     {
@@ -230,12 +229,10 @@ class ProductoController extends ActiveRecord
         }
     }
 
-    
     public static function obtenerAlertas()
     {
         $alertas = [];
         
-        // Stock bajo
         $stockBajo = self::stockBajo();
         if (count($stockBajo) > 0) {
             $alertas[] = [
@@ -247,7 +244,6 @@ class ProductoController extends ActiveRecord
             ];
         }
         
-        // Stock crítico
         $stockCritico = self::stockCritico();
         if (count($stockCritico) > 0) {
             $alertas[] = [
@@ -262,11 +258,15 @@ class ProductoController extends ActiveRecord
         return $alertas;
     }
 
+    public static function marcasActivas()
+    {
+        $query = "SELECT * FROM marcas WHERE situacion = 1 ORDER BY marca_nombre";
+        return self::fetchArray($query);
+    }
 
     public static function buscarAPI()
     {
-        ini_set('display_errors', 0);
-        getHeadersApi();
+        isAuthApi();
         
         try {
             $productos = self::productosConMarca();
@@ -282,11 +282,9 @@ class ProductoController extends ActiveRecord
         }
     }
 
-    // NUEVA FUNCIONALIDAD: BÚSQUEDA CON FILTROS
     public static function buscarFiltradoAPI()
     {
-        ini_set('display_errors', 0);
-        getHeadersApi();
+        isAuthApi();
         
         try {
             $filtros = [
@@ -308,11 +306,9 @@ class ProductoController extends ActiveRecord
         }
     }
 
-    // NUEVA FUNCIONALIDAD: ALERTAS
     public static function alertasStockAPI()
     {
-        ini_set('display_errors', 0);
-        getHeadersApi();
+        isAuthApi();
         
         try {
             $alertas = self::obtenerAlertas();
@@ -330,11 +326,9 @@ class ProductoController extends ActiveRecord
 
     public static function buscarMarcasAPI()
     {
-        ini_set('display_errors', 0);
-        getHeadersApi();
+        isAuthApi();
         
         try {
-            // CORREGIDO: Usar método del controlador en lugar del modelo
             $marcas = self::marcasActivas();
             
             if (count($marcas) > 0) {
@@ -348,17 +342,9 @@ class ProductoController extends ActiveRecord
         }
     }
 
-    // AGREGAR MÉTODO MARCAS ACTIVAS AL PRODUCTO CONTROLLER
-    public static function marcasActivas()
-    {
-        $query = "SELECT * FROM marcas WHERE situacion = 1 ORDER BY marca_nombre";
-        return self::fetchArray($query);
-    }
-
     public static function guardarAPI()
     {
-        ini_set('display_errors', 0);
-        getHeadersApi();
+        isAuthApi();
 
         $error = self::validarProducto($_POST);
         if ($error) {
@@ -391,8 +377,7 @@ class ProductoController extends ActiveRecord
 
     public static function modificarAPI()
     {
-        ini_set('display_errors', 0);
-        getHeadersApi();
+        isAuthApi();
 
         if (empty($_POST['producto_id']) || !is_numeric($_POST['producto_id'])) {
             self::responder(0, 'ID de producto requerido y debe ser numérico');
@@ -438,8 +423,7 @@ class ProductoController extends ActiveRecord
 
     public static function eliminarAPI()
     {
-        ini_set('display_errors', 0);
-        getHeadersApi();
+        isAuthApi();
 
         if (empty($_POST['producto_id']) || !is_numeric($_POST['producto_id'])) {
             self::responder(0, 'ID de producto requerido y debe ser numérico');
@@ -481,8 +465,7 @@ class ProductoController extends ActiveRecord
 
     public static function stockBajoAPI()
     {
-        ini_set('display_errors', 0);
-        getHeadersApi();
+        isAuthApi();
         
         try {
             $productos = self::stockBajo();

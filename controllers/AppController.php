@@ -10,7 +10,10 @@ class AppController
 {
     public static function index(Router $router)
     {
-        session_start();
+        if (session_status() === PHP_SESSION_NONE) {
+            session_start();
+        }
+        
         if(isset($_SESSION['nombre'])) {
             header("Location: ./inicio");
             exit;
@@ -28,13 +31,16 @@ class AppController
 
             $queryExisteUser = "SELECT usu_id, usu_nombre, usu_password FROM usuario WHERE usu_codigo = $usuario AND usu_situacion = 1";
 
-            $ExisteUsuario = ActiveRecord::fetchArray($queryExisteUser)[0];
-
-            if ($ExisteUsuario) {
+            $ExisteUsuario = ActiveRecord::fetchArray($queryExisteUser);
+            
+            if (!empty($ExisteUsuario)) {
+                $ExisteUsuario = $ExisteUsuario[0];
                 $passDB = $ExisteUsuario['usu_password'];
 
                 if (password_verify($contrasena, $passDB)) {
-                    session_start();
+                    if (session_status() === PHP_SESSION_NONE) {
+                        session_start();
+                    }
 
                     $nombreUser = $ExisteUsuario['usu_nombre'];
                     $idUsuario = $ExisteUsuario['usu_id'];
@@ -42,6 +48,8 @@ class AppController
                     $_SESSION['nombre'] = $nombreUser;
                     $_SESSION['codigo'] = $usuario;
                     $_SESSION['usuario_id'] = $idUsuario;
+                    $_SESSION['auth_user'] = true; // Para isAuthApi()
+                    $_SESSION['login'] = true;     // Para isAuth()
 
                     $sqlpermisos = "SELECT rol_nombre_ct as permiso FROM permiso 
                                   INNER JOIN rol ON permiso_rol = rol_id 
@@ -80,9 +88,13 @@ class AppController
 
     public static function logout()
     {
-        session_start();
+        if (session_status() === PHP_SESSION_NONE) {
+            session_start();
+        }
+        
         $_SESSION = [];
         session_destroy();
+        
         $login = $_ENV['APP_NAME'];
         header("Location: /$login");
         exit;
@@ -90,7 +102,10 @@ class AppController
 
     public static function renderInicio(Router $router)
     {
-        session_start();
+        if (session_status() === PHP_SESSION_NONE) {
+            session_start();
+        }
+        
         if(!isset($_SESSION['nombre'])) {
             header("Location: ./");
             exit;

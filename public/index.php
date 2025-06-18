@@ -4,6 +4,7 @@ require_once __DIR__ . '/../includes/app.php';
 
 use MVC\Router;
 use Controllers\AppController;
+use Controllers\LoginController;
 use Controllers\ClienteController;
 use Controllers\MarcaController;
 use Controllers\ProductoController;
@@ -14,12 +15,11 @@ use Controllers\UsuarioController;
 $router = new Router();
 $router->setBaseURL('/' . $_ENV['APP_NAME']);
 
-// RUTAS DE AUTENTICACIÓN
-$router->get('/', [AppController::class, 'index']);
-$router->get('/logout', [AppController::class, 'logout']);
-$router->post('/API/login', [AppController::class, 'login']);
-$router->get('/API/logout', [AppController::class, 'logout']);
-$router->get('/inicio', [AppController::class, 'renderInicio']);
+//login
+$router->get('/', [LoginController::class,'renderizarPagina']);
+$router->post('/API/login', [LoginController::class,'login']);
+$router->get('/inicio', [AppController::class,'index']);
+$router->get('/logout', [LoginController::class,'logout']);
 
 // RUTAS DE CLIENTES
 $router->get('/clientes', [ClienteController::class, 'renderizarPagina']);

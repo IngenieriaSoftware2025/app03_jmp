@@ -87,7 +87,6 @@ class VentaController extends ActiveRecord
         isAuthApi();
         
         try {
-            // Validar datos requeridos
             if (empty($_POST['cliente_id']) || empty($_POST['productos']) || empty($_POST['total'])) {
                 self::responder(0, 'Datos incompletos para procesar la venta');
                 return;
@@ -99,7 +98,6 @@ class VentaController extends ActiveRecord
             $tipoVenta = $_POST['tipo_venta'] ?? 'venta';
             $descripcion = trim($_POST['descripcion'] ?? '');
             
-            // Crear la venta
             $datosVenta = [
                 'cliente_id' => $clienteId,
                 'total' => $total,
@@ -114,7 +112,6 @@ class VentaController extends ActiveRecord
             if ($resultadoVenta['resultado'] >= 0) {
                 $ventaId = $resultadoVenta['id'];
                 
-                // Procesar productos de la venta
                 foreach ($productos as $producto) {
                     $detalleVenta = [
                         'venta_id' => $ventaId,
@@ -127,7 +124,6 @@ class VentaController extends ActiveRecord
                     $detalle = new DetalleVentas($detalleVenta);
                     $detalle->crear();
                     
-                    // Actualizar stock (solo para productos físicos)
                     if ($producto['tipo_producto'] !== 'servicio') {
                         $sqlStock = "UPDATE productos 
                                    SET stock_actual = stock_actual - {$producto['cantidad']} 

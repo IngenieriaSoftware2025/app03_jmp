@@ -116,7 +116,6 @@
     </div>
 </div>
 
-<!-- SCRIPT ADICIONAL para contadores de caracteres -->
 <script>
 document.addEventListener('DOMContentLoaded', () => {
     // Contador de caracteres para nombre

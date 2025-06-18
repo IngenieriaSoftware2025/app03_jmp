@@ -296,7 +296,7 @@ const cambiarCantidad = (e) => {
         actualizarCarrito();
     } else {
         mostrarMensaje('warning', 'Cantidad inválida', 'Verifique la cantidad disponible');
-        e.target.value = productosCarrito[index].cantidad; // Restaurar valor anterior
+        e.target.value = productosCarrito[index].cantidad;
     }
 };
 

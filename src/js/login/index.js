@@ -6,7 +6,6 @@ const BtnIniciar = document.getElementById('BtnIniciar');
 
 const login = async (e) => {
     e.preventDefault();
-
     BtnIniciar.disabled = true;
 
     if (!validarFormulario(FormLogin, [''])) {
@@ -21,8 +20,7 @@ const login = async (e) => {
 
     try {
         const body = new FormData(FormLogin);
-        const url = './API/login';
-
+        const url = '/app03_jmp/API/login';
         const config = {
             method: 'POST',
             body
@@ -37,39 +35,69 @@ const login = async (e) => {
                 title: 'Éxito',
                 text: mensaje,
                 icon: 'success',
-                showConfirmButton: true,
+                showConfirmButton: false,
                 timer: 1500,
-                timerProgressBar: false,
-                background: '#e0f7fa',
-                customClass: {
-                    title: 'custom-title-class',
-                    text: 'custom-text-class'
-                }
+                timerProgressBar: true
             });
 
             FormLogin.reset();
-            location.href = './inicio';
+            location.href = '/app03_jmp/inicio';
         } else {
             Swal.fire({
                 title: '¡Error!',
                 text: mensaje,
-                icon: 'warning',
-                showConfirmButton: true,
-                timer: 1500,
-                timerProgressBar: false,
-                background: '#e0f7fa',
-                customClass: {
-                    title: 'custom-title-class',
-                    text: 'custom-text-class'
-                }
+                icon: 'error',
+                showConfirmButton: true
             });
         }
 
     } catch (error) {
         console.log(error);
+        Swal.fire({
+            title: '¡Error!',
+            text: 'Error de conexión',
+            icon: 'error'
+        });
     }
 
     BtnIniciar.disabled = false;
-};
+}
+
+const logout = async () => {
+    try {
+        const confirmacion = await Swal.fire({
+            title: '¿Cerrar sesión?',
+            text: "¿Estás seguro que deseas cerrar la sesión?",
+            icon: 'question',
+            showCancelButton: true,
+            confirmButtonText: 'Sí, cerrar',
+            cancelButtonText: 'Cancelar',
+            confirmButtonColor: '#d33',
+            cancelButtonColor: '#3085d6'
+        });
+
+        if (confirmacion.isConfirmed) {
+            await Swal.fire({
+                title: 'Cerrando sesión',
+                text: 'Redirigiendo al login...',
+                icon: 'success',
+                showConfirmButton: false,
+                timer: 1000,
+                timerProgressBar: true
+            });
+
+            location.href = '/app03_jmp/logout';
+        }
+
+    } catch (error) {
+        console.log(error);
+        Swal.fire({
+            title: '¡Error!',
+            text: 'Error al cerrar sesión',
+            icon: 'error'
+        });
+    }
+}
 
 FormLogin.addEventListener('submit', login);
+window.logout = logout;

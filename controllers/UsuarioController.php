@@ -126,8 +126,7 @@ class UsuarioController extends ActiveRecord
             if ($resultado['resultado'] >= 0) {
                 $usuarioId = $resultado['id'];
                 
-                // Asignar rol (por defecto EMPLEADO)
-                $rolId = $_POST['rol_id'] ?? 2; // 2 = EMPLEADO
+                $rolId = $_POST['rol_id'] ?? 2;
                 $sqlPermiso = "INSERT INTO permiso (permiso_usuario, permiso_rol, permiso_situacion) 
                               VALUES ($usuarioId, $rolId, 1)";
                 self::SQL($sqlPermiso);
@@ -176,7 +175,6 @@ class UsuarioController extends ActiveRecord
                 'usu_codigo' => filter_var($_POST['usu_codigo'], FILTER_SANITIZE_NUMBER_INT)
             ];
             
-            // Solo actualizar contraseña si se proporciona
             if (!empty($_POST['usu_password'])) {
                 $datosActualizar['usu_password'] = password_hash($_POST['usu_password'], PASSWORD_DEFAULT);
             }
@@ -206,7 +204,6 @@ class UsuarioController extends ActiveRecord
             
             $usuarioId = filter_var($_POST['usu_id'], FILTER_SANITIZE_NUMBER_INT);
             
-            // No permitir eliminar al usuario actual
             if ($usuarioId == $_SESSION['usuario_id']) {
                 self::responder(0, 'No puede eliminar su propio usuario');
                 return;
@@ -218,7 +215,6 @@ class UsuarioController extends ActiveRecord
                 return;
             }
             
-            // Marcar como inactivo en lugar de eliminar
             $usuario->sincronizar(['usu_situacion' => 0]);
             $resultado = $usuario->actualizar();
             

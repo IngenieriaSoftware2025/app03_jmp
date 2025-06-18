@@ -1,75 +1,74 @@
-<div class="container-fluid vh-100" style="background: linear-gradient(135deg,rgb(21, 28, 62) 0%,rgb(11, 8, 13) 100%);">
+<div class="container-fluid vh-100" style="background: linear-gradient(135deg, #74b9ff 0%, #0984e3 50%, #2d3436 100%);">
     <div class="row justify-content-center align-items-center vh-100">
         <div class="col-12 col-sm-8 col-md-6 col-lg-4 col-xl-3">
-            <div class="card shadow-lg border-0" style="border-radius: 20px; backdrop-filter: blur(10px);">
+            <div class="card shadow-lg border-0" style="border-radius: 20px; border: 2px solid rgba(255,255,255,0.3); box-shadow: 0 25px 45px rgba(0,0,0,0.1); backdrop-filter: blur(10px);">
+                
                 <!-- Header con gradiente -->
-                <div class="card-header text-center border-0 pb-0" style="background: linear-gradient(135deg,rgb(84, 65, 104),rgb(141, 108, 108)); border-radius: 20px 20px 0 0;">
-                    <div class="py-4">
-                        <!-- Logo de tu empresa -->
-                        <div class="mb-3">
-                            <img src="<?= asset('images/logo.png') ?>" 
-                                 alt="Logo Morataya" 
-                                 class="rounded-circle border border-4 border-white shadow"
-                                 style="width: 100px; height: 100px; object-fit: cover;">
+                <div class="card-header text-center text-white border-0" style="background: linear-gradient(135deg, #74b9ff 0%, #0984e3 100%); border-radius: 20px 20px 0 0; padding: 40px 20px 30px;">
+                    <div class="mb-3">
+                        <div style="width: 70px; height: 70px; background: rgba(255,255,255,0.2); border-radius: 50%; margin: 0 auto; display: flex; align-items: center; justify-content: center;">
+                            <i class="bi bi-phone-fill" style="font-size: 2rem;"></i>
                         </div>
-                        <h2 class="text-white fw-bold mb-1">MORATAYA CELULARES</h2>
-                        <p class="text-white-50 mb-0">Sistema de Gestión</p>
                     </div>
+                    <h2 class="fw-bold mb-2">MORATAYA CELULARES</h2>
+                    <p class="mb-0" style="opacity: 0.9;">Sistema de Gestión de Celulares</p>
                 </div>
 
                 <!-- Formulario -->
-                <div class="card-body p-4">
+                <div class="card-body p-4" style="background: #f8f9fa;">
                     <form id="FormLogin">
+                        
                         <!-- Campo de código -->
                         <div class="mb-4">
-                            <div class="input-group input-group-lg">
-                                <span class="input-group-text bg-light border-end-0" style="border-radius: 12px 0 0 12px;">
-                                    <i class="bi bi-person-circle text-primary"></i>
-                                </span>
+                            <div class="form-floating">
                                 <input type="number" 
-                                       class="form-control border-start-0 ps-0" 
+                                       name="usu_codigo" 
                                        id="usu_codigo" 
-                                       name="usu_codigo"
-                                       placeholder="Código de usuario"
-                                       style="border-radius: 0 12px 12px 0;"
+                                       class="form-control" 
+                                       placeholder="Ingrese su código"
+                                       style="border-radius: 12px; height: 55px; border: 2px solid #e1e5e9;"
                                        required>
+                                <label for="usu_codigo">Ingrese su código</label>
                             </div>
                         </div>
 
                         <!-- Campo de contraseña -->
                         <div class="mb-4">
-                            <div class="input-group input-group-lg">
-                                <span class="input-group-text bg-light border-end-0" style="border-radius: 12px 0 0 12px;">
-                                    <i class="bi bi-lock-fill text-primary"></i>
-                                </span>
+                            <div class="form-floating">
                                 <input type="password" 
-                                       class="form-control border-start-0 ps-0" 
+                                       name="usu_password" 
                                        id="usu_password" 
-                                       name="usu_password"
-                                       placeholder="Contraseña"
-                                       style="border-radius: 0 12px 12px 0;"
+                                       class="form-control" 
+                                       placeholder="Ingrese su contraseña"
+                                       style="border-radius: 12px; height: 55px; border: 2px solid #e1e5e9;"
                                        required>
+                                <label for="usu_password">Ingrese su contraseña</label>
                             </div>
                         </div>
 
                         <!-- Botón de login -->
-                        <div class="mb-4">
+                        <div class="d-grid mb-3">
                             <button type="submit" 
-                                    class="btn btn-lg w-100 text-white fw-bold py-3"
-                                    id="BtnIniciar"
-                                    style="background: linear-gradient(135deg, #667eea, #764ba2); border-radius: 12px; border: none;">
-                                <i class="bi bi-box-arrow-in-right me-2"></i>
-                                Iniciar Sesión
+                                    id="BtnIniciar" 
+                                    class="btn btn-primary btn-lg" 
+                                    style="background: linear-gradient(135deg, #74b9ff 0%, #0984e3 100%); border: none; border-radius: 12px; padding: 15px; font-weight: 600;">
+                                <i class="bi bi-box-arrow-in-right me-2"></i>Iniciar Sesión
                             </button>
                         </div>
+
+                        <!-- Información de usuarios de prueba -->
+                        <div class="text-center">
+                            <small class="text-muted">Usuarios de prueba disponibles</small>
+                        </div>
+
                     </form>
                 </div>
 
-                <!-- Footer con credenciales de prueba -->
+                <!-- Footer con credenciales -->
                 <div class="card-footer border-0 bg-light" style="border-radius: 0 0 20px 20px;">
                     <div class="alert alert-info border-0 mb-0" style="border-radius: 12px;">
                         <h6 class="alert-heading mb-3">
-                            <i class="bi bi-info-circle me-2"></i>Usuarios de Prueba
+                            <i class="bi bi-info-circle me-2"></i>Credenciales de Prueba
                         </h6>
                         
                         <div class="row g-2">
@@ -90,9 +89,10 @@
                         </div>
                     </div>
                 </div>
+
             </div>
 
-            <!-- Información adicional -->
+            <!-- Copyright -->
             <div class="text-center mt-4">
                 <p class="text-white-50 mb-1">
                     <i class="bi bi-shield-check me-1"></i>
@@ -106,49 +106,38 @@
     </div>
 </div>
 
-<style>
-#BtnIniciar:hover {
-    transform: translateY(-2px);
-    box-shadow: 0 8px 25px rgba(102, 126, 234, 0.4) !important;
-    transition: all 0.3s ease;
-}
-
-.form-control:focus {
-    border-color: #667eea !important;
-    box-shadow: 0 0 0 0.2rem rgba(102, 126, 234, 0.25) !important;
-}
-
-.card {
-    animation: slideUp 0.6s ease-out;
-}
-
-@keyframes slideUp {
-    from {
-        opacity: 0;
-        transform: translateY(30px);
-    }
-    to {
-        opacity: 1;
-        transform: translateY(0);
-    }
-}
-
-.card-header img:hover {
-    transform: scale(1.05);
-    transition: transform 0.3s ease;
-}
-
-@media (max-width: 576px) {
-    .card {
-        margin: 1rem;
-    }
-    .card-header {
-        padding: 2rem 1rem;
-    }
-    .card-header h2 {
-        font-size: 1.5rem;
-    }
-}
-</style>
-
 <script src="<?= asset('build/js/login/index.js') ?>"></script>
+
+<style>
+    html, body {
+        height: 100%;
+        margin: 0;
+        padding: 0;
+    }
+    
+    .form-control:focus {
+        border-color: #74b9ff;
+        box-shadow: 0 0 0 0.2rem rgba(116, 185, 255, 0.25);
+    }
+    
+    .btn-primary:hover {
+        background: linear-gradient(135deg, #0984e3 0%, #0057b3 100%) !important;
+        transform: translateY(-2px);
+        box-shadow: 0 10px 25px rgba(116, 185, 255, 0.4);
+    }
+    
+    .card {
+        animation: slideUp 0.6s ease-out;
+    }
+
+    @keyframes slideUp {
+        from {
+            opacity: 0;
+            transform: translateY(30px);
+        }
+        to {
+            opacity: 1;
+            transform: translateY(0);
+        }
+    }
+</style>

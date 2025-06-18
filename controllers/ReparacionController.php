@@ -36,7 +36,6 @@ class ReparacionController extends ActiveRecord
         isAuthApi();
         
         try {
-            // Validar datos requeridos
             if (empty($_POST['cliente_id']) || empty($_POST['descripcion'])) {
                 self::responder(0, 'Cliente y descripción del problema son requeridos');
                 return;
@@ -48,7 +47,6 @@ class ReparacionController extends ActiveRecord
             $equipoModelo = trim(htmlspecialchars($_POST['equipo_modelo'] ?? ''));
             $costoEstimado = filter_var($_POST['costo_estimado'] ?? 0, FILTER_SANITIZE_NUMBER_FLOAT, FILTER_FLAG_ALLOW_FRACTION);
             
-            // Crear reparación como venta tipo 'reparacion'
             $datosReparacion = [
                 'cliente_id' => $clienteId,
                 'total' => $costoEstimado,
@@ -57,7 +55,6 @@ class ReparacionController extends ActiveRecord
                 'situacion' => 1
             ];
             
-            // Usar la tabla ventas para reparaciones
             $sql = "INSERT INTO ventas (cliente_id, total, tipo_venta, descripcion, situacion) 
                     VALUES ($clienteId, $costoEstimado, 'reparacion', " . 
                     self::$db->quote($datosReparacion['descripcion']) . ", 1)";
@@ -111,7 +108,6 @@ class ReparacionController extends ActiveRecord
             $estado = trim($_POST['estado']);
             $observaciones = trim($_POST['observaciones'] ?? '');
             
-            // Los estados se manejan a través de la descripción
             $sql = "UPDATE ventas 
                     SET descripcion = CONCAT(descripcion, ' - Estado: $estado', 
                         CASE WHEN " . self::$db->quote($observaciones) . " != '' 

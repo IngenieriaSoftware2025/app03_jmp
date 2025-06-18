@@ -149,7 +149,6 @@ const validarPassword = () => {
     const valor = input.value;
     
     if (accion === 'modificar' && valor === '') {
-        // En modificación, la contraseña es opcional
         input.classList.remove("is-valid", "is-invalid");
         return;
     }
@@ -165,7 +164,6 @@ const validarPassword = () => {
     }
 };
 
-// Validar confirmación de contraseña
 const validarConfirmPassword = () => {
     const password = document.getElementById("usu_password").value;
     const confirmPassword = document.getElementById("confirm_password");
@@ -187,11 +185,9 @@ const validarConfirmPassword = () => {
     }
 };
 
-// Guardar usuario
 const guardar = async () => {
     console.log('💾 Iniciando guardado...', 'Acción:', accion);
     
-    // Validaciones específicas
     const password = document.getElementById('usu_password').value;
     const confirmPassword = document.getElementById('confirm_password').value;
     
@@ -230,7 +226,6 @@ const guardar = async () => {
         datos.append('usu_codigo', document.getElementById('usu_codigo').value.trim());
         datos.append('rol_id', document.getElementById('rol_id').value);
         
-        // Solo agregar contraseña si se proporciona
         if (password) {
             datos.append('usu_password', password);
         }
@@ -262,7 +257,6 @@ const guardar = async () => {
     btnGuardar.disabled = false;
 };
 
-// Llenar formulario para modificación
 const llenarFormulario = (e) => {
     try {
         e.preventDefault();
@@ -279,7 +273,6 @@ const llenarFormulario = (e) => {
         
         console.log('👤 Usuario recibido:', usuario);
         
-        // Limpiar formulario
         formUsuario.reset();
         formUsuario.querySelectorAll('.form-control, .form-select').forEach(input => {
             input.classList.remove('is-valid', 'is-invalid');
@@ -288,16 +281,13 @@ const llenarFormulario = (e) => {
         accion = 'modificar';
         tituloModal.textContent = 'Modificar Usuario';
         
-        // Llenar campos
         document.getElementById('usu_id').value = usuario.usu_id || '';
         document.getElementById('usu_nombre').value = usuario.usu_nombre || '';
         document.getElementById('usu_codigo').value = usuario.usu_codigo || '';
         
-        // La contraseña se deja vacía en modificación
         document.getElementById('usu_password').value = '';
         document.getElementById('confirm_password').value = '';
         
-        // Mostrar nota sobre contraseña
         const passwordHelp = document.getElementById('password-help');
         if (passwordHelp) {
             passwordHelp.textContent = 'Dejar vacío para mantener la contraseña actual';
@@ -323,7 +313,6 @@ const eliminarUsuario = async (e) => {
         return;
     }
     
-    // Proteger al administrador principal
     if (usuario && usuario.usu_codigo == '12345678') {
         mostrarMensaje('warning', 'Acción no permitida', 'No se puede eliminar el usuario administrador principal');
         return;
@@ -394,7 +383,6 @@ const limpiarModal = () => {
     accion = 'guardar';
     tituloModal.textContent = 'Nuevo Usuario';
     
-    // Ocultar nota de contraseña
     const passwordHelp = document.getElementById('password-help');
     if (passwordHelp) {
         passwordHelp.textContent = 'Mínimo 6 caracteres';
@@ -404,10 +392,8 @@ const limpiarModal = () => {
     console.log('🧹 Modal limpiado - Acción:', accion);
 };
 
-// Mostrar estadísticas de usuarios
 const mostrarEstadisticas = async () => {
     try {
-        // Calcular estadísticas básicas de los datos actuales
         const totalUsuarios = usuariosData.length;
         const usuariosActivos = usuariosData.filter(u => u.usu_situacion == 1).length;
         const administradores = usuariosData.filter(u => u.roles && u.roles.includes('ADMINISTRADOR')).length;

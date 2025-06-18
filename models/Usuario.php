@@ -7,16 +7,16 @@ use Model\ActiveRecord;
 class Usuario extends ActiveRecord
 {
     public static $tabla = 'usuario';
-    public static $idTabla = 'usu_id';
+    public static $idTabla = 'usu_id';  
     public static $columnasDB = [
-        'usu_id',
+        'usu_id',   
         'usu_nombre',
         'usu_codigo',
         'usu_password',
         'usu_situacion'
     ];
 
-    public $usu_id;
+    public $usu_id; 
     public $usu_nombre;
     public $usu_codigo;
     public $usu_password;

@@ -343,176 +343,173 @@ const limpiarCarrito = () => {
 
 // Procesar venta
 const procesarVenta = async () => {
+    if (!clienteSeleccionado || productosCarrito.length === 0) {
+        mostrarMensaje('warning', 'Datos incompletos', 'Seleccione un cliente y agregue productos');
+        return;
+    }
 
-    // Procesar venta
-    const procesarVenta = async () => {
-        if (!clienteSeleccionado || productosCarrito.length === 0) {
-            mostrarMensaje('warning', 'Datos incompletos', 'Seleccione un cliente y agregue productos');
-            return;
-        }
+    // Mostrar resumen de la venta
+    let resumenHtml = '<div class="text-start"><h6>Resumen de la venta:</h6><ul>';
+    productosCarrito.forEach(producto => {
+        resumenHtml += `<li>${producto.cantidad}x ${producto.nombre_producto} - Q ${producto.subtotal.toFixed(2)}</li>`;
+    });
+    resumenHtml += '</ul></div>';
 
-        // Mostrar resumen de la venta
-        let resumenHtml = '<div class="text-start"><h6>Resumen de la venta:</h6><ul>';
-        productosCarrito.forEach(producto => {
-            resumenHtml += `<li>${producto.cantidad}x ${producto.nombre_producto} - Q ${producto.subtotal.toFixed(2)}</li>`;
-        });
-        resumenHtml += '</ul></div>';
-
-        const confirmacion = await Swal.fire({
-            title: '¿Procesar venta?',
-            html: `
+    const confirmacion = await Swal.fire({
+        title: '¿Procesar venta?',
+        html: `
             <div class="text-center mb-3">
                 <p><strong>Cliente:</strong> ${clienteSeleccionado.cliente_nombres} ${clienteSeleccionado.cliente_apellidos}</p>
                 <p><strong>Total:</strong> <span class="fs-4 text-success">Q ${totalVenta.toFixed(2)}</span></p>
             </div>
             ${resumenHtml}
         `,
-            icon: 'question',
-            showCancelButton: true,
-            confirmButtonText: 'Sí, procesar venta',
-            cancelButtonText: 'Cancelar',
-            confirmButtonColor: '#28a745',
-            cancelButtonColor: '#6c757d'
+        icon: 'question',
+        showCancelButton: true,
+        confirmButtonText: 'Sí, procesar venta',
+        cancelButtonText: 'Cancelar',
+        confirmButtonColor: '#28a745',
+        cancelButtonColor: '#6c757d'
+    });
+
+    if (!confirmacion.isConfirmed) return;
+
+    btnProcesarVenta.disabled = true;
+
+    try {
+        console.log('Procesando venta...');
+        const datos = new URLSearchParams();
+        datos.append('cliente_id', clienteSeleccionado.cliente_id);
+        datos.append('productos', JSON.stringify(productosCarrito));
+        datos.append('total', totalVenta);
+        datos.append('tipo_venta', 'venta');
+        datos.append('descripcion', `Venta de ${productosCarrito.length} producto(s)`);
+
+        // Usar ruta absoluta para la API
+        const respuesta = await fetch('/app03_jmp/ventas/procesarVentaAPI', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/x-www-form-urlencoded',
+            },
+            body: datos
         });
 
-        if (!confirmacion.isConfirmed) return;
+        if (!respuesta.ok) {
+            throw new Error(`Error HTTP: ${respuesta.status}`);
+        }
 
-        btnProcesarVenta.disabled = true;
+        const resultado = await respuesta.json();
+        console.log('Resultado procesarVenta:', resultado);
 
-        try {
-            console.log('Procesando venta...');
-            const datos = new URLSearchParams();
-            datos.append('cliente_id', clienteSeleccionado.cliente_id);
-            datos.append('productos', JSON.stringify(productosCarrito));
-            datos.append('total', totalVenta);
-            datos.append('tipo_venta', 'venta');
-            datos.append('descripcion', `Venta de ${productosCarrito.length} producto(s)`);
-
-            // Usar ruta absoluta para la API
-            const respuesta = await fetch('/app03_jmp/ventas/procesarVentaAPI', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/x-www-form-urlencoded',
-                },
-                body: datos
-            });
-
-            if (!respuesta.ok) {
-                throw new Error(`Error HTTP: ${respuesta.status}`);
-            }
-
-            const resultado = await respuesta.json();
-            console.log('Resultado procesarVenta:', resultado);
-
-            if (resultado.codigo === 1) {
-                await Swal.fire({
-                    icon: 'success',
-                    title: '¡Venta procesada!',
-                    html: `
+        if (resultado.codigo === 1) {
+            await Swal.fire({
+                icon: 'success',
+                title: '¡Venta procesada!',
+                html: `
                     <p>La venta se procesó exitosamente</p>
                     <p><strong>ID de Venta:</strong> ${resultado.data?.venta_id || 'N/A'}</p>
                     <p><strong>Total:</strong> Q ${totalVenta.toFixed(2)}</p>
                 `,
-                    confirmButtonText: 'Continuar',
-                    confirmButtonColor: '#28a745'
-                });
-                limpiarFormulario();
-                cargarHistorial();
-            } else {
-                mostrarMensaje('error', 'Error', resultado.mensaje || 'Error al procesar la venta');
-            }
-        } catch (error) {
-            console.error('Error completo:', error);
-            mostrarMensaje('error', 'Error', `Error al procesar la venta: ${error.message}`);
-        }
-
-        btnProcesarVenta.disabled = false;
-    };
-
-    // Limpiar formulario
-    const limpiarFormulario = () => {
-        if (inputTelefono) inputTelefono.value = '';
-        limpiarInfoCliente();
-        if (inputTelefono) {
-            inputTelefono.classList.remove('is-valid', 'is-invalid');
-        }
-    };
-
-    // Cargar historial de ventas
-    const cargarHistorial = async () => {
-        try {
-            console.log('Cargando historial de ventas...');
-            // Usar ruta absoluta para la API
-            const respuesta = await fetch('/app03_jmp/ventas/historialAPI', {
-                method: 'POST'
+                confirmButtonText: 'Continuar',
+                confirmButtonColor: '#28a745'
             });
-
-            if (!respuesta.ok) {
-                throw new Error(`Error HTTP: ${respuesta.status}`);
-            }
-
-            const resultado = await respuesta.json();
-            console.log('Resultado historial:', resultado);
-
-            if (resultado.codigo === 1 && resultado.data) {
-                mostrarHistorial(resultado.data);
-            } else {
-                // Si no hay ventas, mostrar tabla vacía
-                mostrarHistorial([]);
-            }
-        } catch (error) {
-            console.error('Error cargando historial:', error);
-            mostrarMensaje('error', 'Error', `No se pudo cargar el historial: ${error.message}`);
+            limpiarFormulario();
+            cargarHistorial();
+        } else {
+            mostrarMensaje('error', 'Error', resultado.mensaje || 'Error al procesar la venta');
         }
-    };
+    } catch (error) {
+        console.error('Error completo:', error);
+        mostrarMensaje('error', 'Error', `Error al procesar la venta: ${error.message}`);
+    }
 
-    // Mostrar historial
-    const mostrarHistorial = (ventas) => {
-        if (tablaHistorial) {
-            tablaHistorial.destroy();
+    btnProcesarVenta.disabled = false;
+};
+
+// Limpiar formulario
+const limpiarFormulario = () => {
+    if (inputTelefono) inputTelefono.value = '';
+    limpiarInfoCliente();
+    if (inputTelefono) {
+        inputTelefono.classList.remove('is-valid', 'is-invalid');
+    }
+};
+
+// Cargar historial de ventas
+const cargarHistorial = async () => {
+    try {
+        console.log('Cargando historial de ventas...');
+        // Usar ruta absoluta para la API
+        const respuesta = await fetch('/app03_jmp/ventas/historialAPI', {
+            method: 'POST'
+        });
+
+        if (!respuesta.ok) {
+            throw new Error(`Error HTTP: ${respuesta.status}`);
         }
 
-        tablaHistorial = new DataTable('#tablaHistorial', {
-            language: lenguaje,
-            data: ventas,
-            pageLength: 10,
-            order: [[0, 'desc']],
-            columns: [
-                {
-                    title: "Fecha", data: "fecha_venta", width: "15%",
-                    render: (data) => {
-                        if (!data) return '';
-                        const fecha = new Date(data);
-                        return fecha.toLocaleDateString('es-GT') + ' ' + fecha.toLocaleTimeString('es-GT', { hour: '2-digit', minute: '2-digit' });
-                    }
-                },
-                {
-                    title: "Cliente", data: "cliente_nombres", width: "25%",
-                    render: (data, type, row) => `${data} ${row.cliente_apellidos || ''}`
-                },
-                {
-                    title: "Total", data: "total", width: "15%",
-                    render: data => `<strong>Q ${parseFloat(data).toFixed(2)}</strong>`
-                },
-                {
-                    title: "Tipo", data: "tipo_venta", width: "15%",
-                    render: (data) => {
-                        const badges = {
-                            'venta': '<span class="badge bg-success">Venta</span>',
-                            'reparacion': '<span class="badge bg-warning">Reparación</span>'
-                        };
-                        return badges[data] || data;
-                    }
-                },
-                {
-                    title: "Estado", data: "situacion", width: "15%",
-                    render: (data) => `<span class="badge ${data == 1 ? 'bg-success' : 'bg-secondary'}">
+        const resultado = await respuesta.json();
+        console.log('Resultado historial:', resultado);
+
+        if (resultado.codigo === 1 && resultado.data) {
+            mostrarHistorial(resultado.data);
+        } else {
+            // Si no hay ventas, mostrar tabla vacía
+            mostrarHistorial([]);
+        }
+    } catch (error) {
+        console.error('Error cargando historial:', error);
+        mostrarMensaje('error', 'Error', `No se pudo cargar el historial: ${error.message}`);
+    }
+};
+
+// Mostrar historial
+const mostrarHistorial = (ventas) => {
+    if (tablaHistorial) {
+        tablaHistorial.destroy();
+    }
+
+    tablaHistorial = new DataTable('#tablaHistorial', {
+        language: lenguaje,
+        data: ventas,
+        pageLength: 10,
+        order: [[0, 'desc']],
+        columns: [
+            {
+                title: "Fecha", data: "fecha_venta", width: "15%",
+                render: (data) => {
+                    if (!data) return '';
+                    const fecha = new Date(data);
+                    return fecha.toLocaleDateString('es-GT') + ' ' + fecha.toLocaleTimeString('es-GT', { hour: '2-digit', minute: '2-digit' });
+                }
+            },
+            {
+                title: "Cliente", data: "cliente_nombres", width: "25%",
+                render: (data, type, row) => `${data} ${row.cliente_apellidos || ''}`
+            },
+            {
+                title: "Total", data: "total", width: "15%",
+                render: data => `<strong>Q ${parseFloat(data).toFixed(2)}</strong>`
+            },
+            {
+                title: "Tipo", data: "tipo_venta", width: "15%",
+                render: (data) => {
+                    const badges = {
+                        'venta': '<span class="badge bg-success">Venta</span>',
+                        'reparacion': '<span class="badge bg-warning">Reparación</span>'
+                    };
+                    return badges[data] || data;
+                }
+            },
+            {
+                title: "Estado", data: "situacion", width: "15%",
+                render: (data) => `<span class="badge ${data == 1 ? 'bg-success' : 'bg-secondary'}">
                     ${data == 1 ? 'Completada' : 'Anulada'}
                 </span>`
-                },
-                {
-                    title: "Acciones", data: "venta_id", width: "15%",
-                    render: (data, type, row) => `
+            },
+            {
+                title: "Acciones", data: "venta_id", width: "15%",
+                render: (data, type, row) => `
                     <button class="btn btn-info btn-sm ver-detalle" data-id="${data}" title="Ver detalle">
                         <i class="bi bi-eye"></i>
                     </button>
@@ -522,55 +519,55 @@ const procesarVenta = async () => {
                         </button>
                     ` : ''}
                 `
-                }
-            ]
-        });
-
-        // Event listeners para los botones de la tabla
-        document.querySelectorAll('.ver-detalle').forEach(btn => {
-            btn.addEventListener('click', verDetalleVenta);
-        });
-
-        document.querySelectorAll('.anular-venta').forEach(btn => {
-            btn.addEventListener('click', anularVenta);
-        });
-    };
-
-    // Verificar si el usuario es administrador
-    const isAdmin = () => {
-        // Esta función debería verificar si el usuario tiene rol de administrador
-        // Por ahora, devolvemos true para simplificar
-        return true;
-    };
-
-    // Ver detalle de venta
-    const verDetalleVenta = async (e) => {
-        const ventaId = e.target.closest('.ver-detalle').dataset.id;
-
-        try {
-            const datos = new URLSearchParams();
-            datos.append('venta_id', ventaId);
-
-            // Usar ruta absoluta para la API
-            const respuesta = await fetch('/app03_jmp/ventas/obtenerDetalleVentaAPI', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/x-www-form-urlencoded',
-                },
-                body: datos
-            });
-
-            if (!respuesta.ok) {
-                throw new Error(`Error HTTP: ${respuesta.status}`);
             }
+        ]
+    });
 
-            const resultado = await respuesta.json();
+    // Event listeners para los botones de la tabla
+    document.querySelectorAll('.ver-detalle').forEach(btn => {
+        btn.addEventListener('click', verDetalleVenta);
+    });
 
-            if (resultado.codigo === 1) {
-                const venta = resultado.data.venta;
-                const detalles = resultado.data.detalles;
+    document.querySelectorAll('.anular-venta').forEach(btn => {
+        btn.addEventListener('click', anularVenta);
+    });
+};
 
-                let detallesHtml = `
+// Verificar si el usuario es administrador
+const isAdmin = () => {
+    // Esta función debería verificar si el usuario tiene rol de administrador
+    // Por ahora, devolvemos true para simplificar
+    return true;
+};
+
+// Ver detalle de venta
+const verDetalleVenta = async (e) => {
+    const ventaId = e.target.closest('.ver-detalle').dataset.id;
+
+    try {
+        const datos = new URLSearchParams();
+        datos.append('venta_id', ventaId);
+
+        // Usar ruta absoluta para la API
+        const respuesta = await fetch('/app03_jmp/ventas/obtenerDetalleVentaAPI', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/x-www-form-urlencoded',
+            },
+            body: datos
+        });
+
+        if (!respuesta.ok) {
+            throw new Error(`Error HTTP: ${respuesta.status}`);
+        }
+
+        const resultado = await respuesta.json();
+
+        if (resultado.codigo === 1) {
+            const venta = resultado.data.venta;
+            const detalles = resultado.data.detalles;
+
+            let detallesHtml = `
                 <div class="table-responsive">
                     <table class="table table-sm table-striped">
                         <thead class="table-dark">
@@ -584,8 +581,8 @@ const procesarVenta = async () => {
                         <tbody>
             `;
 
-                detalles.forEach(detalle => {
-                    detallesHtml += `
+            detalles.forEach(detalle => {
+                detallesHtml += `
                     <tr>
                         <td>${detalle.nombre_producto}</td>
                         <td>Q ${parseFloat(detalle.precio_unitario).toFixed(2)}</td>
@@ -593,17 +590,17 @@ const procesarVenta = async () => {
                         <td>Q ${parseFloat(detalle.subtotal).toFixed(2)}</td>
                     </tr>
                 `;
-                });
+            });
 
-                detallesHtml += `
+            detallesHtml += `
                         </tbody>
                     </table>
                 </div>
             `;
 
-                Swal.fire({
-                    title: 'Detalle de Venta',
-                    html: `
+            Swal.fire({
+                title: 'Detalle de Venta',
+                html: `
                     <div class="text-start mb-3">
                         <p><strong>Cliente:</strong> ${venta.cliente_nombres} ${venta.cliente_apellidos}</p>
                         <p><strong>Teléfono:</strong> ${venta.cliente_telefono}</p>
@@ -612,116 +609,115 @@ const procesarVenta = async () => {
                     </div>
                     ${detallesHtml}
                 `,
-                    width: '800px',
-                    confirmButtonText: 'Cerrar',
-                    confirmButtonColor: '#3085d6'
+                width: '800px',
+                confirmButtonText: 'Cerrar',
+                confirmButtonColor: '#3085d6'
+            });
+        } else {
+            mostrarMensaje('error', 'Error', resultado.mensaje || 'No se pudo obtener el detalle de la venta');
+        }
+    } catch (error) {
+        console.error('Error:', error);
+        mostrarMensaje('error', 'Error', `Error al obtener detalle: ${error.message}`);
+    }
+};
+
+// Anular venta
+const anularVenta = async (e) => {
+    const ventaId = e.target.closest('.anular-venta').dataset.id;
+
+    const confirmacion = await Swal.fire({
+        title: '¿Anular esta venta?',
+        text: 'Esta acción no se puede deshacer y revertirá el stock',
+        icon: 'warning',
+        showCancelButton: true,
+        confirmButtonText: 'Sí, anular',
+        cancelButtonText: 'Cancelar',
+        confirmButtonColor: '#d33',
+        cancelButtonColor: '#3085d6'
+    });
+
+    if (!confirmacion.isConfirmed) return;
+
+    try {
+        const datos = new URLSearchParams();
+        datos.append('venta_id', ventaId);
+
+        // Usar ruta absoluta para la API
+        const respuesta = await fetch('/app03_jmp/ventas/anularVentaAPI', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/x-www-form-urlencoded',
+            },
+            body: datos
+        });
+
+        if (!respuesta.ok) {
+            throw new Error(`Error HTTP: ${respuesta.status}`);
+        }
+
+        const resultado = await respuesta.json();
+
+        if (resultado.codigo === 1) {
+            mostrarMensaje('success', 'Éxito', 'Venta anulada correctamente');
+            cargarHistorial();
+        } else {
+            mostrarMensaje('error', 'Error', resultado.mensaje || 'No se pudo anular la venta');
+        }
+    } catch (error) {
+        console.error('Error:', error);
+        mostrarMensaje('error', 'Error', `Error al anular venta: ${error.message}`);
+    }
+};
+
+// Inicialización al cargar la página
+document.addEventListener('DOMContentLoaded', () => {
+    console.log('🚀 DOM cargado, iniciando aplicación de ventas...');
+
+    // Cargar historial inicial
+    cargarHistorial();
+
+    // Event listeners para botones y campos
+    btnBuscarCliente?.addEventListener('click', buscarCliente);
+
+    inputTelefono?.addEventListener('keypress', (e) => {
+        if (e.key === 'Enter') {
+            e.preventDefault();
+            buscarCliente();
+        }
+    });
+
+    inputTelefono?.addEventListener('input', validarTelefono);
+
+    btnProcesarVenta?.addEventListener('click', procesarVenta);
+
+    // Event listener para el botón "Nueva Venta"
+    const btnNuevaVenta = document.querySelector('button[onclick="location.reload()"]');
+    if (btnNuevaVenta) {
+        btnNuevaVenta.removeAttribute('onclick');
+        btnNuevaVenta.addEventListener('click', () => {
+            if (productosCarrito.length > 0) {
+                Swal.fire({
+                    title: '¿Nueva venta?',
+                    text: 'Se perderán los productos en el carrito actual',
+                    icon: 'warning',
+                    showCancelButton: true,
+                    confirmButtonText: 'Sí, limpiar',
+                    cancelButtonText: 'Cancelar',
+                    confirmButtonColor: '#28a745',
+                    cancelButtonColor: '#6c757d'
+                }).then((result) => {
+                    if (result.isConfirmed) {
+                        limpiarFormulario();
+                    }
                 });
             } else {
-                mostrarMensaje('error', 'Error', resultado.mensaje || 'No se pudo obtener el detalle de la venta');
-            }
-        } catch (error) {
-            console.error('Error:', error);
-            mostrarMensaje('error', 'Error', `Error al obtener detalle: ${error.message}`);
-        }
-    };
-
-    // Anular venta
-    const anularVenta = async (e) => {
-        const ventaId = e.target.closest('.anular-venta').dataset.id;
-
-        const confirmacion = await Swal.fire({
-            title: '¿Anular esta venta?',
-            text: 'Esta acción no se puede deshacer y revertirá el stock',
-            icon: 'warning',
-            showCancelButton: true,
-            confirmButtonText: 'Sí, anular',
-            cancelButtonText: 'Cancelar',
-            confirmButtonColor: '#d33',
-            cancelButtonColor: '#3085d6'
-        });
-
-        if (!confirmacion.isConfirmed) return;
-
-        try {
-            const datos = new URLSearchParams();
-            datos.append('venta_id', ventaId);
-
-            // Usar ruta absoluta para la API
-            const respuesta = await fetch('/app03_jmp/ventas/anularVentaAPI', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/x-www-form-urlencoded',
-                },
-                body: datos
-            });
-
-            if (!respuesta.ok) {
-                throw new Error(`Error HTTP: ${respuesta.status}`);
-            }
-
-            const resultado = await respuesta.json();
-
-            if (resultado.codigo === 1) {
-                mostrarMensaje('success', 'Éxito', 'Venta anulada correctamente');
-                cargarHistorial();
-            } else {
-                mostrarMensaje('error', 'Error', resultado.mensaje || 'No se pudo anular la venta');
-            }
-        } catch (error) {
-            console.error('Error:', error);
-            mostrarMensaje('error', 'Error', `Error al anular venta: ${error.message}`);
-        }
-    };
-
-    // Inicialización al cargar la página
-    document.addEventListener('DOMContentLoaded', () => {
-        console.log('🚀 DOM cargado, iniciando aplicación de ventas...');
-
-        // Cargar historial inicial
-        cargarHistorial();
-
-        // Event listeners para botones y campos
-        btnBuscarCliente?.addEventListener('click', buscarCliente);
-
-        inputTelefono?.addEventListener('keypress', (e) => {
-            if (e.key === 'Enter') {
-                e.preventDefault();
-                buscarCliente();
+                limpiarFormulario();
             }
         });
+    }
+});
 
-        inputTelefono?.addEventListener('input', validarTelefono);
-
-        btnProcesarVenta?.addEventListener('click', procesarVenta);
-
-        // Event listener para el botón "Nueva Venta"
-        const btnNuevaVenta = document.querySelector('button[onclick="location.reload()"]');
-        if (btnNuevaVenta) {
-            btnNuevaVenta.removeAttribute('onclick');
-            btnNuevaVenta.addEventListener('click', () => {
-                if (productosCarrito.length > 0) {
-                    Swal.fire({
-                        title: '¿Nueva venta?',
-                        text: 'Se perderán los productos en el carrito actual',
-                        icon: 'warning',
-                        showCancelButton: true,
-                        confirmButtonText: 'Sí, limpiar',
-                        cancelButtonText: 'Cancelar',
-                        confirmButtonColor: '#28a745',
-                        cancelButtonColor: '#6c757d'
-                    }).then((result) => {
-                        if (result.isConfirmed) {
-                            limpiarFormulario();
-                        }
-                    });
-                } else {
-                    limpiarFormulario();
-                }
-            });
-        }
-
-    });
-}
 window.buscarCliente = buscarCliente;
 window.procesarVenta = procesarVenta;
 window.cargarHistorial = cargarHistorial;

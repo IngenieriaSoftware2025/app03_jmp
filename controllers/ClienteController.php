@@ -12,9 +12,13 @@ class ClienteController extends ActiveRecord
 {
     public static function renderizarPagina(Router $router)
     {
-        session_start();
+        // Evitar iniciar sesión si ya está iniciada
+        if (session_status() == PHP_SESSION_NONE) {
+            session_start();
+        }
+        
         if(!isset($_SESSION['nombre'])) {
-            header("Location: ./");
+            header("Location: /app03_jmp/");
             exit;
         }
         $router->render('clientes/index', [], 'layouts/menu');
@@ -212,16 +216,26 @@ class ClienteController extends ActiveRecord
 
     public static function guardarAPI()
     {
-        isAuthApi();
+        // Verificar si está autenticado antes de continuar
+        if (session_status() == PHP_SESSION_NONE) {
+            session_start();
+        }
+        
+        if (!isset($_SESSION['user'])) {
+            self::responder(0, "No estás autenticado");
+            return;
+        }
 
         $error = self::validarCliente($_POST);
         if ($error) {
             self::responder(0, $error);
+            return;
         }
 
         $error = self::verificarDuplicados($_POST);
         if ($error) {
             self::responder(0, $error);
+            return;
         }
 
         try {
@@ -242,25 +256,60 @@ class ClienteController extends ActiveRecord
 
     public static function buscarAPI()
     {
-        isAuthApi();
+        // Verificar si está autenticado antes de continuar
+        if (session_status() == PHP_SESSION_NONE) {
+            session_start();
+        }
+        
+        if (!isset($_SESSION['user'])) {
+            header('Content-Type: application/json; charset=utf-8');
+            echo json_encode([
+                'codigo' => 0,
+                'mensaje' => 'No está autenticado'
+            ]);
+            exit;
+        }
 
         try {
             $clientes = self::clientesActivos();
 
+            header('Content-Type: application/json; charset=utf-8');
+            
             if (count($clientes) > 0) {
-                self::responder(1, 'Clientes encontrados', $clientes);
+                echo json_encode([
+                    'codigo' => 1, 
+                    'mensaje' => 'Clientes encontrados', 
+                    'data' => $clientes
+                ]);
             } else {
-                self::responder(1, 'No hay clientes disponibles', []);
+                echo json_encode([
+                    'codigo' => 1, 
+                    'mensaje' => 'No hay clientes disponibles', 
+                    'data' => []
+                ]);
             }
         } catch (Exception $e) {
             error_log("Error en buscarAPI clientes: " . $e->getMessage());
-            self::responder(1, 'No hay clientes disponibles - Tabla no inicializada', []);
+            header('Content-Type: application/json; charset=utf-8');
+            echo json_encode([
+                'codigo' => 0,
+                'mensaje' => 'Error: ' . $e->getMessage()
+            ]);
         }
+        exit;
     }
 
     public static function buscarFiltradoAPI()
     {
-        isAuthApi();
+        // Verificar si está autenticado antes de continuar
+        if (session_status() == PHP_SESSION_NONE) {
+            session_start();
+        }
+        
+        if (!isset($_SESSION['user'])) {
+            self::responder(0, "No estás autenticado");
+            return;
+        }
         
         try {
             $filtros = [
@@ -282,7 +331,15 @@ class ClienteController extends ActiveRecord
 
     public static function estadisticasAPI()
     {
-        isAuthApi();
+        // Verificar si está autenticado antes de continuar
+        if (session_status() == PHP_SESSION_NONE) {
+            session_start();
+        }
+        
+        if (!isset($_SESSION['user'])) {
+            self::responder(0, "No estás autenticado");
+            return;
+        }
         
         try {
             $stats = self::estadisticasClientes();
@@ -295,7 +352,15 @@ class ClienteController extends ActiveRecord
 
     public static function modificarAPI()
     {
-        isAuthApi();
+        // Verificar si está autenticado antes de continuar
+        if (session_status() == PHP_SESSION_NONE) {
+            session_start();
+        }
+        
+        if (!isset($_SESSION['user'])) {
+            self::responder(0, "No estás autenticado");
+            return;
+        }
 
         if (empty($_POST['cliente_id']) || !is_numeric($_POST['cliente_id'])) {
             self::responder(0, 'ID de cliente requerido y debe ser numérico');
@@ -340,7 +405,15 @@ class ClienteController extends ActiveRecord
 
     public static function eliminarAPI()
     {
-        isAuthApi();
+        // Verificar si está autenticado antes de continuar
+        if (session_status() == PHP_SESSION_NONE) {
+            session_start();
+        }
+        
+        if (!isset($_SESSION['user'])) {
+            self::responder(0, "No estás autenticado");
+            return;
+        }
 
         if (empty($_POST['cliente_id']) || !is_numeric($_POST['cliente_id'])) {
             self::responder(0, 'ID de cliente requerido y debe ser numérico');
@@ -383,7 +456,15 @@ class ClienteController extends ActiveRecord
 
     public static function buscarPorTelefonoAPI()
     {
-        isAuthApi();
+        // Verificar si está autenticado antes de continuar
+        if (session_status() == PHP_SESSION_NONE) {
+            session_start();
+        }
+        
+        if (!isset($_SESSION['user'])) {
+            self::responder(0, "No estás autenticado");
+            return;
+        }
 
         if (empty($_POST['telefono'])) {
             self::responder(0, 'Número de teléfono requerido');

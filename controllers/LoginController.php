@@ -41,10 +41,38 @@ class LoginController extends ActiveRecord
             $passDB = $existeUsuario['usu_password'];
 
             if (password_verify($contrasena, $passDB)) {
+                // Consultar el rol del usuario
+                $queryRol = "SELECT r.rol_nombre, r.rol_nombre_ct 
+                             FROM permiso p 
+                             INNER JOIN rol r ON p.permiso_rol = r.rol_id 
+                             WHERE p.permiso_usuario = {$existeUsuario['usu_id']} AND p.permiso_situacion = 1";
+                
+                $rolesResult = ActiveRecord::fetchArray($queryRol);
+                $esAdmin = false;
+                
+                if (!empty($rolesResult)) {
+                    foreach ($rolesResult as $rol) {
+                        if ($rol['rol_nombre_ct'] === 'ADMIN') {
+                            $esAdmin = true;
+                            break;
+                        }
+                    }
+                }
+
+                // Guardar en sesión
                 $_SESSION['user'] = $existeUsuario['usu_nombre'];
+                $_SESSION['nombre'] = $existeUsuario['usu_nombre']; // Para compatibilidad
                 $_SESSION['codigo'] = $codigo;
                 $_SESSION['usuario_id'] = $existeUsuario['usu_id'];
-                $_SESSION['rol'] = 'USER';
+                $_SESSION['rol'] = $esAdmin ? 'ADMIN' : 'USER';
+                
+                // Si es admin, guardar bandera de admin
+                if ($esAdmin) {
+                    $_SESSION['ADMIN'] = true;
+                }
+                
+                // Para verificación de API
+                $_SESSION['auth_user'] = true;
 
                 echo json_encode([
                     'codigo' => 1,

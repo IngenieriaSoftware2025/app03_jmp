@@ -58,6 +58,9 @@ $router->post('/ventas/buscarClienteAPI', [VentaController::class, 'buscarClient
 $router->post('/ventas/buscarProductosAPI', [VentaController::class, 'buscarProductosAPI']);
 $router->post('/ventas/procesarVentaAPI', [VentaController::class, 'procesarVentaAPI']);
 $router->post('/ventas/historialAPI', [VentaController::class, 'historialAPI']);
+$router->post('/ventas/obtenerDetalleVentaAPI', [VentaController::class, 'obtenerDetalleVentaAPI']);
+$router->post('/ventas/anularVentaAPI', [VentaController::class, 'anularVentaAPI']);
+$router->post('/ventas/estadisticasVentasAPI', [VentaController::class, 'estadisticasVentasAPI']);
 
 // RUTAS DE REPARACIONES
 $router->get('/reparaciones', [ReparacionController::class, 'renderizarPagina']);

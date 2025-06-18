@@ -81,3 +81,57 @@ function getHeadersApi(){
 function asset($ruta){
     return "/". $_ENV['APP_NAME']."/public/" . $ruta;
 }
+
+
+
+
+/**
+ * Función mejorada para verificación de autenticación
+ * Puede ser usada tanto para páginas como para API
+ * 
+ * @param bool $esApi Indica si la verificación es para una API
+ * @param array $rolesPermitidos Roles que tienen acceso (opcional)
+ * @return bool True si está autenticado, false o redirige si no
+ */
+function verificarAutenticacion($esApi = false, $rolesPermitidos = []) {
+    // Asegurar que la sesión está iniciada
+    if (session_status() == PHP_SESSION_NONE) {
+        session_start();
+    }
+    
+    // Verificar autenticación básica (sesión existe)
+    $autenticado = isset($_SESSION['user']) || isset($_SESSION['nombre']);
+    
+    // Verificación de roles si se especifican
+    $tieneRol = true;
+    if (!empty($rolesPermitidos) && $autenticado) {
+        $tieneRol = false;
+        
+        // Verificar si el usuario tiene alguno de los roles permitidos
+        if (isset($_SESSION['ADMIN']) && in_array('ADMIN', $rolesPermitidos)) {
+            $tieneRol = true;
+        } else if (isset($_SESSION['rol']) && in_array($_SESSION['rol'], $rolesPermitidos)) {
+            $tieneRol = true;
+        }
+    }
+    
+    // Si no está autenticado o no tiene rol adecuado
+    if (!$autenticado || !$tieneRol) {
+        if ($esApi) {
+            // Configurar headers para API
+            header('Content-Type: application/json; charset=utf-8');
+            $mensaje = !$autenticado ? 'No está autenticado' : 'No tiene permisos suficientes';
+            echo json_encode([
+                'codigo' => 0,
+                'mensaje' => $mensaje
+            ]);
+            exit;
+        } else {
+            // Redireccionar para navegación normal
+            header('Location: /app03_jmp/');
+            exit;
+        }
+    }
+    
+    return true;
+}

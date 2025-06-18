@@ -130,7 +130,8 @@ const buscarClientes = async () => {
     console.log('🔍 Iniciando búsqueda de clientes...');
     
     try {
-        const respuesta = await fetch('./clientes/buscarAPI', {
+        // Modificar la URL para incluir el path completo
+        const respuesta = await fetch('/app03_jmp/clientes/buscarAPI', {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/x-www-form-urlencoded',
@@ -142,6 +143,7 @@ const buscarClientes = async () => {
         }
         
         const resultado = await respuesta.json();
+        console.log('📦 Resultado:', resultado);
         
         if (resultado.codigo === 1) {
             if (resultado.data && resultado.data.length > 0) {
@@ -178,7 +180,7 @@ const guardarCliente = async (e) => {
     
     try {
         const datos = new FormData(form);
-        const respuesta = await fetch('./clientes/guardarAPI', {
+        const respuesta = await fetch('/app03_jmp/clientes/guardarAPI', {
             method: 'POST',
             body: datos
         });
@@ -226,7 +228,7 @@ const modificarCliente = async (e) => {
         datos.append('cliente_direccion', document.getElementById('cliente_direccion').value.trim());
         datos.append('cliente_situacion', '1');
         
-        const respuesta = await fetch('./clientes/modificarAPI', {
+        const respuesta = await fetch('/app03_jmp/clientes/modificarAPI', {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/x-www-form-urlencoded',
@@ -298,7 +300,7 @@ const eliminarCliente = async (e) => {
         const datos = new URLSearchParams();
         datos.append('cliente_id', id);
         
-        const respuesta = await fetch('./clientes/eliminarAPI', {
+        const respuesta = await fetch('/app03_jmp/clientes/eliminarAPI', {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/x-www-form-urlencoded',
@@ -390,7 +392,7 @@ const buscarFiltrado = async () => {
         const datos = new URLSearchParams();
         datos.append('busqueda', busqueda);
         
-        const respuesta = await fetch('./clientes/buscarFiltradoAPI', {
+        const respuesta = await fetch('/app03_jmp/clientes/buscarFiltradoAPI', {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/x-www-form-urlencoded',
@@ -420,7 +422,7 @@ const buscarFiltrado = async () => {
 
 const mostrarEstadisticas = async () => {
     try {
-        const respuesta = await fetch('./clientes/estadisticasAPI', {
+        const respuesta = await fetch('/app03_jmp/clientes/estadisticasAPI', {
             method: 'POST'
         });
         

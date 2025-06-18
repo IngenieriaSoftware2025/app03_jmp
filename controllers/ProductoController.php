@@ -13,11 +13,8 @@ class ProductoController extends ActiveRecord
 {
     public static function renderizarPagina(Router $router)
     {
-        session_start();
-        if(!isset($_SESSION['nombre'])) {
-            header("Location: ./");
-            exit;
-        }
+        // Usar la nueva función de verificación de autenticación
+        verificarAutenticacion();
         $router->render('productos/index', [], 'layouts/menu');
     }
 
@@ -266,7 +263,8 @@ class ProductoController extends ActiveRecord
 
     public static function buscarAPI()
     {
-        isAuthApi();
+        // Verificar autenticación con la nueva función
+        verificarAutenticacion(true);
         
         try {
             $productos = self::productosConMarca();
@@ -278,13 +276,14 @@ class ProductoController extends ActiveRecord
             }
         } catch (Exception $e) {
             error_log("Error en buscarAPI productos: " . $e->getMessage());
-            self::responder(1, 'No hay productos disponibles - Tabla no inicializada', []);
+            self::responder(0, 'Error: ' . $e->getMessage());
         }
     }
 
     public static function buscarFiltradoAPI()
     {
-        isAuthApi();
+        // Verificar autenticación con la nueva función
+        verificarAutenticacion(true);
         
         try {
             $filtros = [
@@ -302,13 +301,14 @@ class ProductoController extends ActiveRecord
             }
         } catch (Exception $e) {
             error_log("Error en buscarFiltradoAPI: " . $e->getMessage());
-            self::responder(0, 'Error al filtrar productos: ' . $e->getMessage());
+            self::responder(0, 'Error: ' . $e->getMessage());
         }
     }
 
     public static function alertasStockAPI()
     {
-        isAuthApi();
+        // Verificar autenticación con la nueva función
+        verificarAutenticacion(true);
         
         try {
             $alertas = self::obtenerAlertas();
@@ -320,13 +320,14 @@ class ProductoController extends ActiveRecord
             }
         } catch (Exception $e) {
             error_log("Error en alertasStockAPI: " . $e->getMessage());
-            self::responder(0, 'Error al obtener alertas: ' . $e->getMessage());
+            self::responder(0, 'Error: ' . $e->getMessage());
         }
     }
 
     public static function buscarMarcasAPI()
     {
-        isAuthApi();
+        // Verificar autenticación con la nueva función
+        verificarAutenticacion(true);
         
         try {
             $marcas = self::marcasActivas();
@@ -338,13 +339,14 @@ class ProductoController extends ActiveRecord
             }
         } catch (Exception $e) {
             error_log("Error en buscarMarcasAPI: " . $e->getMessage());
-            self::responder(0, 'Error al buscar marcas: ' . $e->getMessage());
+            self::responder(0, 'Error: ' . $e->getMessage());
         }
     }
 
     public static function guardarAPI()
     {
-        isAuthApi();
+        // Verificar autenticación con la nueva función
+        verificarAutenticacion(true);
 
         $error = self::validarProducto($_POST);
         if ($error) {
@@ -371,13 +373,14 @@ class ProductoController extends ActiveRecord
             }
         } catch (Exception $e) {
             error_log("Error en guardarAPI productos: " . $e->getMessage());
-            self::responder(0, 'Error al guardar el producto: ' . $e->getMessage());
+            self::responder(0, 'Error: ' . $e->getMessage());
         }
     }
 
     public static function modificarAPI()
     {
-        isAuthApi();
+        // Verificar autenticación con la nueva función
+        verificarAutenticacion(true);
 
         if (empty($_POST['producto_id']) || !is_numeric($_POST['producto_id'])) {
             self::responder(0, 'ID de producto requerido y debe ser numérico');
@@ -417,13 +420,14 @@ class ProductoController extends ActiveRecord
             }
         } catch (Exception $e) {
             error_log("Error en modificarAPI productos: " . $e->getMessage());
-            self::responder(0, 'Error al actualizar el producto: ' . $e->getMessage());
+            self::responder(0, 'Error: ' . $e->getMessage());
         }
     }
 
     public static function eliminarAPI()
     {
-        isAuthApi();
+        // Verificar autenticación con la nueva función
+        verificarAutenticacion(true);
 
         if (empty($_POST['producto_id']) || !is_numeric($_POST['producto_id'])) {
             self::responder(0, 'ID de producto requerido y debe ser numérico');
@@ -459,13 +463,14 @@ class ProductoController extends ActiveRecord
             }
         } catch (Exception $e) {
             error_log("Error en eliminarAPI productos: " . $e->getMessage());
-            self::responder(0, 'Error al eliminar el producto: ' . $e->getMessage());
+            self::responder(0, 'Error: ' . $e->getMessage());
         }
     }
 
     public static function stockBajoAPI()
     {
-        isAuthApi();
+        // Verificar autenticación con la nueva función
+        verificarAutenticacion(true);
         
         try {
             $productos = self::stockBajo();
@@ -477,7 +482,7 @@ class ProductoController extends ActiveRecord
             }
         } catch (Exception $e) {
             error_log("Error en stockBajoAPI: " . $e->getMessage());
-            self::responder(0, 'Error al buscar productos con stock bajo: ' . $e->getMessage());
+            self::responder(0, 'Error: ' . $e->getMessage());
         }
     }
 }

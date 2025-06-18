@@ -169,9 +169,15 @@ const manejarTipoProducto = () => {
 
 const cargarMarcas = async () => {
     try {
-        const respuesta = await fetch('./productos/buscarMarcasAPI', {
+        // Usar ruta absoluta para la API
+        const respuesta = await fetch('/app03_jmp/productos/buscarMarcasAPI', {
             method: 'POST'
         });
+        
+        if (!respuesta.ok) {
+            throw new Error(`Error HTTP: ${respuesta.status}`);
+        }
+        
         const resultado = await respuesta.json();
         
         const selectMarca = document.getElementById('marca_id');
@@ -183,9 +189,13 @@ const cargarMarcas = async () => {
                     `<option value="${marca.marca_id}">${marca.marca_nombre}</option>`
                 );
             });
+        } else {
+            console.warn("No se encontraron marcas:", resultado.mensaje);
+            mostrarMensaje('warning', 'Sin marcas', 'No hay marcas disponibles. Por favor, agregue marcas primero.');
         }
     } catch (error) {
         console.error('Error cargando marcas:', error);
+        mostrarMensaje('error', 'Error', `No se pudieron cargar las marcas: ${error.message}`);
     }
 };
 
@@ -193,7 +203,8 @@ const buscarProductos = async () => {
     console.log('🔍 Iniciando búsqueda de productos...');
     
     try {
-        const respuesta = await fetch('./productos/buscarAPI', {
+        // Usar ruta absoluta para la API
+        const respuesta = await fetch('/app03_jmp/productos/buscarAPI', {
             method: 'POST'
         });
         
@@ -310,13 +321,19 @@ const guardarProducto = async (e) => {
         datos.append('stock_minimo', document.getElementById('stock_minimo').value);
         datos.append('descripcion', document.getElementById('descripcion').value.trim());
         
-        const respuesta = await fetch('./productos/guardarAPI', {
+        // Usar ruta absoluta para la API
+        const respuesta = await fetch('/app03_jmp/productos/guardarAPI', {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/x-www-form-urlencoded',
             },
             body: datos
         });
+        
+        if (!respuesta.ok) {
+            throw new Error(`Error HTTP: ${respuesta.status}`);
+        }
+        
         const resultado = await respuesta.json();
 
         if (resultado.codigo === 1) {
@@ -327,7 +344,8 @@ const guardarProducto = async (e) => {
             mostrarMensaje('warning', 'Atención', resultado.mensaje);
         }
     } catch (error) {
-        mostrarMensaje('error', 'Error', 'Problema de conexión');
+        console.error('Error:', error);
+        mostrarMensaje('error', 'Error', `Problema de conexión: ${error.message}`);
     }
     
     btnGuardar.disabled = false;
@@ -366,13 +384,19 @@ const modificarProducto = async (e) => {
         datos.append('stock_minimo', document.getElementById('stock_minimo').value);
         datos.append('descripcion', document.getElementById('descripcion').value.trim());
         
-        const respuesta = await fetch('./productos/modificarAPI', {
+        // Usar ruta absoluta para la API
+        const respuesta = await fetch('/app03_jmp/productos/modificarAPI', {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/x-www-form-urlencoded',
             },
             body: datos
         });
+        
+        if (!respuesta.ok) {
+            throw new Error(`Error HTTP: ${respuesta.status}`);
+        }
+        
         const resultado = await respuesta.json();
 
         if (resultado.codigo === 1) {
@@ -383,14 +407,20 @@ const modificarProducto = async (e) => {
             mostrarMensaje('warning', 'Atención', resultado.mensaje);
         }
     } catch (error) {
-        mostrarMensaje('error', 'Error', 'Problema de conexión');
+        console.error('Error:', error);
+        mostrarMensaje('error', 'Error', `Problema de conexión: ${error.message}`);
     }
     
     btnModificar.disabled = false;
 };
 
 const eliminarProducto = async (e) => {
-    const id = e.target.dataset.id;
+    const id = e.target.dataset.id || e.target.closest('.eliminar')?.dataset.id;
+    
+    if (!id) {
+        mostrarMensaje('error', 'Error', 'ID de producto no identificado');
+        return;
+    }
     
     const confirmacion = await Swal.fire({
         title: '¿Eliminar producto?',
@@ -409,13 +439,19 @@ const eliminarProducto = async (e) => {
         const datos = new URLSearchParams();
         datos.append('producto_id', id);
         
-        const respuesta = await fetch('./productos/eliminarAPI', {
+        // Usar ruta absoluta para la API
+        const respuesta = await fetch('/app03_jmp/productos/eliminarAPI', {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/x-www-form-urlencoded',
             },
             body: datos
         });
+        
+        if (!respuesta.ok) {
+            throw new Error(`Error HTTP: ${respuesta.status}`);
+        }
+        
         const resultado = await respuesta.json();
 
         if (resultado.codigo === 1) {
@@ -441,7 +477,7 @@ const eliminarProducto = async (e) => {
         Swal.fire({
             icon: 'error',
             title: 'Error de sistema',
-            text: 'Ocurrió un problema técnico. Intente nuevamente.',
+            text: `Ocurrió un problema técnico: ${error.message}. Intente nuevamente.`,
             confirmButtonText: 'OK',
             confirmButtonColor: '#e74c3c'
         });
@@ -450,7 +486,7 @@ const eliminarProducto = async (e) => {
 
 const llenarFormulario = (e) => {
     try {
-        const index = parseInt(e.target.dataset.index);
+        const index = parseInt(e.target.closest('.modificar').dataset.index);
         const producto = productosData[index];
         
         if (!producto) {
@@ -494,9 +530,16 @@ const limpiarFormulario = () => {
 
 const verStockBajo = async () => {
     try {
-        const resultado = await fetch('./productos/stockBajoAPI', {
+        // Usar ruta absoluta para la API
+        const respuesta = await fetch('/app03_jmp/productos/stockBajoAPI', {
             method: 'POST'
-        }).then(response => response.json());
+        });
+        
+        if (!respuesta.ok) {
+            throw new Error(`Error HTTP: ${respuesta.status}`);
+        }
+        
+        const resultado = await respuesta.json();
         
         if (resultado.codigo === 1 && resultado.data.length > 0) {
             productosData = resultado.data;
@@ -507,7 +550,8 @@ const verStockBajo = async () => {
             buscarProductos();
         }
     } catch (error) {
-        mostrarMensaje('error', 'Error', 'Error al consultar stock bajo');
+        console.error('Error:', error);
+        mostrarMensaje('error', 'Error', `Error al consultar stock bajo: ${error.message}`);
     }
 };
 
@@ -518,18 +562,25 @@ document.addEventListener('DOMContentLoaded', () => {
     buscarProductos();
     
     form.addEventListener("submit", guardarProducto);
-    btnLimpiar.addEventListener("click", limpiarFormulario);
-    btnModificar.addEventListener("click", modificarProducto);
-    btnStockBajo.addEventListener("click", verStockBajo);
+    btnLimpiar?.addEventListener("click", limpiarFormulario);
+    btnModificar?.addEventListener("click", modificarProducto);
+    btnStockBajo?.addEventListener("click", verStockBajo);
     
-    document.getElementById("tipo_producto").addEventListener("change", manejarTipoProducto);
-    document.getElementById("precio_compra").addEventListener("input", validarPrecios);
-    document.getElementById("precio_venta").addEventListener("input", validarPrecios);
-    document.getElementById("stock_actual").addEventListener("input", calcularGanancia);
-    document.getElementById("stock_minimo").addEventListener("input", calcularGanancia);
+    document.getElementById("tipo_producto")?.addEventListener("change", manejarTipoProducto);
+    document.getElementById("precio_compra")?.addEventListener("input", validarPrecios);
+    document.getElementById("precio_venta")?.addEventListener("input", validarPrecios);
+    document.getElementById("stock_actual")?.addEventListener("input", calcularGanancia);
+    document.getElementById("stock_minimo")?.addEventListener("input", calcularGanancia);
     
     tabla.on("click", ".modificar", llenarFormulario);
     tabla.on("click", ".eliminar", eliminarProducto);
+    
+    // Inicializar otros componentes si es necesario
+    const btnActualizar = document.getElementById('btnActualizar');
+    if (btnActualizar) {
+        btnActualizar.addEventListener('click', buscarProductos);
+    }
 });
 
 window.buscarProductos = buscarProductos;
+window.verStockBajo = verStockBajo;

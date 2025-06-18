@@ -11,7 +11,7 @@
 <body>
     <nav class="navbar navbar-expand-lg navbar-dark bg-dark">
         <div class="container-fluid">
-            <a class="navbar-brand" href="/app03_jmp">
+            <a class="navbar-brand" href="/app03_jmp/inicio">
                 <img src="<?= asset('./images/cit.png') ?>" width="35px" alt="logo">
                 Morataya Celulares
             </a>
@@ -23,11 +23,11 @@
             <div class="collapse navbar-collapse" id="navbarNav">
                 <!-- Enlaces del menú -->
                 <div class="navbar-nav me-auto">
+                    <a class="nav-link" href="/app03_jmp/inicio">
+                        <i class="bi bi-house-fill"></i> Inicio
+                    </a>
                     <a class="nav-link" href="/app03_jmp/clientes">
                         <i class="bi bi-person-check-fill"></i> Clientes
-                    </a>
-                    <a class="nav-link" href="/app03_jmp/marcas">
-                        <i class="bi bi-tags-fill"></i> Marcas
                     </a>
                     <a class="nav-link" href="/app03_jmp/productos">
                         <i class="bi bi-box-seam"></i> Productos
@@ -38,9 +38,15 @@
                     <a class="nav-link" href="/app03_jmp/reparaciones">
                         <i class="bi bi-tools"></i> Reparaciones
                     </a>
+                    
+                    <?php if (isset($_SESSION['rol']) && $_SESSION['rol'] == 'ADMIN'): ?>
+                    <a class="nav-link" href="/app03_jmp/marcas">
+                        <i class="bi bi-tags-fill"></i> Marcas
+                    </a>
                     <a class="nav-link" href="/app03_jmp/usuarios">
                         <i class="bi bi-person-gear"></i> Usuarios
                     </a>
+                    <?php endif; ?>
                 </div>
                 
                 <div class="navbar-nav">
@@ -49,6 +55,7 @@
                         <?php 
                         echo $_SESSION['user'] ?? 'Usuario'; 
                         ?>
+                        <small class="text-muted">(<?= $_SESSION['rol'] ?? 'USER' ?>)</small>
                     </span>
                     <button type="button" 
                             class="btn btn-outline-danger btn-sm" 
@@ -66,7 +73,6 @@
     </div>
     
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
-    
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
     
     <script>

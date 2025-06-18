@@ -10,12 +10,14 @@ class AppController {
             session_start();
         }
         
-        if (!isset($_SESSION['user']) || !isset($_SESSION['rol'])) {
+        // Verificar sesión de manera flexible para mayor compatibilidad
+        if (!isset($_SESSION['user'])) {
             header('Location: /app03_jmp/');
             exit;
         }
         
-        $router->render('pages/index', []);
+        // Renderizar con el layout adecuado
+        $router->render('pages/index', [], 'layouts/menu');
     }
 
     public static function renderInicio(Router $router){
@@ -23,12 +25,14 @@ class AppController {
             session_start();
         }
         
-        if (!isset($_SESSION['user']) || !isset($_SESSION['rol'])) {
+        // Verificar sesión de manera flexible para mayor compatibilidad
+        if (!isset($_SESSION['user'])) {
             header('Location: /app03_jmp/');
             exit;
         }
         
-        $router->render('pages/index', []);
+        // Renderizar con el layout adecuado
+        $router->render('pages/index', [], 'layouts/menu');
     }
 
     public static function verificarSesion() {
@@ -36,7 +40,8 @@ class AppController {
             session_start();
         }
         
-        if (!isset($_SESSION['user']) || !isset($_SESSION['rol'])) {
+        // Verificación simplificada de sesión
+        if (!isset($_SESSION['user'])) {
             header('Location: /app03_jmp/');
             exit;
         }
@@ -51,9 +56,11 @@ class AppController {
         
         return [
             'usuario' => $_SESSION['user'] ?? null,
+            'nombre' => $_SESSION['nombre'] ?? null,
             'codigo' => $_SESSION['codigo'] ?? null,
             'usuario_id' => $_SESSION['usuario_id'] ?? null,
-            'rol' => $_SESSION['rol'] ?? null
+            'rol' => $_SESSION['rol'] ?? null,
+            'es_admin' => isset($_SESSION['ADMIN'])
         ];
     }
 }
